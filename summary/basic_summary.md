@@ -13,3 +13,234 @@
         (1) 在类的非静态成员函数中返回类对象本身的时候，直接使用 return *this
         (2) 当参数与成员变量名相同时，如this->n = n （不能写成n = n)
 ```
+
+## 自动化推导 decltype
+
+```shell
+    1.可以评估括号内表达式的类型,其规则如下：
+        (1) 如果表达式e是一个变量，那么就是这个变量的类型。
+        (2) 如果表达式e是一个函数，那么就是这个函数返回值的类型。
+        (3) 如果不符合1和2，如果e是左值，类型为T，那么decltype(e)是T&；如果是右值，则是T
+        
+    2.
+      const vector<int> vec;
+      typedef decltype(vec.begin()) CIT;
+      CIT iter;
+      
+    3.decltype与auto关键字一样,用于进行编译时类型推导,decltype(expression),decltype 仅仅“查询”表达式的类型，
+      并不会对表达式进行“求值”。
+    4.推导出表达式类型
+        int i = 4;
+        decltype(i) a; //推导结果为int。a的类型为int
+        
+        const int&& foo();
+        int i;
+        struct A { double x; };
+        const A* a = new A();
+         
+        decltype(foo())  x1;  // const int&&      (1)
+        decltype(i)      x2;  // int              (2)
+        decltype(a->x)   x3;  // double           (3)
+        decltype((a->x)) x4;  // double&    当出现 (a->x),则代表是左值
+        
+    5.重用匿名类型
+        我们有时候会遇上一些匿名类型,如:
+            struct 
+            {
+                int d ;
+                doubel b;
+            }anon_s;
+            
+        通过decltype,我们可以重新使用这个匿名的结构体：
+            decltype(anon_s) as ;//定义了一个上面匿名的结构体
+```
+
+## 统一的初始化语法
+
+```shell
+    1.
+        C c {0,0}; //C++11 only. 相当于: C c(0,0);
+         
+        int* a = new int[3] { 1, 2, 0 }; /C++11 only
+         
+        class X {
+            int a[4];
+            public:
+                X() : a{1,2,3,4} {} //C++11, member array initializer
+        };
+        
+    2.容器的初始化
+        // C++11 container initializer
+        vector<string> vs={ "first", "second", "third"};
+        map singers =
+        { {"Lady Gaga", "+1 (212) 555-7890"},
+        {"Beyonce Knowles", "+1 (212) 555-0987"}};
+        
+    3.成员初始化
+        class C
+        {
+           int a=7; //C++11 only
+         public:
+           C();
+        };
+```
+
+## delete 和 default 函数
+
+```shell
+    1.default告诉编译器产生一个默认的,只要你定义了一个构造函数,编译器就不会给你生成一个默认的了。所以,
+      为了要让默认的和自定义的共存，才引入这个参数
+            struct SomeType
+            {
+             SomeType() = default; // 使用编译器生成的默认构造函数
+             SomeType(OtherType value);
+            };
+            
+    2.阻止函数的其形参的类型调用：(若尝试以 double 的形参调用 f(),将会引发编译期错误,
+                              编译器不会自动将 double 形参转型为 int 再调用f(),
+                              如果传入的参数是double，则会出现编译错误）
+
+      void f(int i);
+      void f(double) = delete;
+
+```
+
+## nullptr
+
+```shell
+    1. 一定要以　nullptr 初始化指针
+        void f(int); //#1
+        void f(char *);//#2
+        //C++03
+        f(0); //二义性
+        //C++11
+        f(nullptr) //无二义性，调用f(char*)
+        
+```
+
+## 左值和右值
+
+```shell
+    1.左值（lvalue,locator value）是一个表达式,它表示一个可被标识的（变量或对象的）内存位置,
+      并且允许使用&操作符来获取这块内存的地址.
+      如果一个表达式不是左值,那它就被定义为右值(无法确定该object的地址)
+      (1) 一个表达式是右值,而不是左值(因为它没有可定位识别的内存地址)
+      
+    2.左值引用
+        (1) C++中可以使用&符定义引用,如果一个左值同时是引用，就称为“左值引用”,如
+                std::string s;
+                std::string& sref = s;  //sref为左值引用
+                
+        (2) 非const左值引用不能使用右值对其赋值
+                引用是可以后续被赋值的,右值连可被获取的内存地址都没有,也就谈不上对其进行赋值。
+                std::string& r = std::string(); //错误！std::string（）产生一个临时对象，为右值
+                
+        (3) const左值引用可以用右值对其赋值,因为常量不能被修改
+                const std::string& r = std::string(); //可以,正确
+                
+    3.带CV限定符（CV-qualified）的右值
+        CV限定符: 变量声明时类型前带有const或volatile
+        在C中,右值永远没有CV限定符,而C++中的类类型的右值可以有CV限定符,例如:
+            #include <iostream>
+            
+            class A {
+            public:
+                void foo() const { std::cout << "A::foo() const\n"; }
+                void foo() { std::cout << "A::foo()\n"; }
+            };
+            
+            A bar() { return A(); }           //返回临时对象，为右值
+            const A cbar() { return A(); }    //返回带const的右值（带CV限定符）
+            
+            
+            int main()
+            {
+                bar().foo();  // 非const对象调用A::foo()的非const版本
+                cbar().foo(); // const对象调用A::foo()的const版本
+            }
+            
+    4.右值引用
+            class Intvec
+            {
+            public:
+                explicit Intvec(size_t num = 0)
+                    : m_size(num), m_data(new int[m_size])
+                {
+                    log("constructor");
+                }
+            
+                ~Intvec()
+                {
+                    log("destructor");
+                    if (m_data) {
+                        delete[] m_data;
+                        m_data = nullptr;
+                    }
+                }
+            
+                Intvec(const Intvec& other)
+                    : m_size(other.m_size), m_data(new int[m_size])
+                {
+                    log("copy constructor");
+                    for (size_t i = 0; i < m_size; ++i)
+                        m_data[i] = other.m_data[i];
+                }
+            
+                Intvec& operator=(const Intvec& other)
+                {
+                    log("copy assignment operator");
+                    Intvec tmp(other);
+                    std::swap(m_size, tmp.m_size);
+                    std::swap(m_data, tmp.m_data);
+                    return *this;
+                }
+            private:
+                void log(const char* msg)
+                {
+                    cout << "[" << this << "] " << msg << "\n";
+                }
+            
+                size_t m_size;
+                int* m_data;
+            };
+            
+            Intvec v1(20);
+            Intvec v2;
+            // 有普通的重载赋值函数(Intvec& operator=(const Intvec& other)和
+            // 右值引用重载赋值函数,优先调用普通的重载赋值函数
+            v2 = v1    
+            
+       
+            cout << "assigning rvalue...\n";
+            v2 = Intvec(33);
+            cout << "ended assigning rvalue...\n";
+            
+            结果:
+                assigning rvalue...
+                [0x28ff08] constructor  Intvec(33) 临时对象调用了构造函数
+                [0x28fef8] copy assignment operator　Intvec v2 调用了重载赋值函数
+                [0x28fec8] copy constructor　　　　　　在重载赋值函数中定义了tmp的临时变量
+                [0x28fec8] destructor                 重载赋值函数调用完,tmp的临时变量出了作用域,自动调用析构函数
+                [0x28ff08] destructor                  v2 = Intvec(33);　Intvec(33)临时变量没有用处,自动调用析构函数
+                ended assigning rvalue...
+                
+            这就出现了2次构造和析构函数,极大的影响效率
+            这时就可以通过右值引用来优化
+                Intvec& operator=(Intvec&& other)
+                {
+                    log("move assignment operator");
+                    std::swap(m_size, other.m_size);
+                    std::swap(m_data, other.m_data);
+                    return *this;
+                }
+                
+                 cout << "assigning rvalue...\n";
+                 v2 = Intvec(33);
+                 cout << "ended assigning rvalue...\n";
+                 使用右值引用,则结果:
+                    assigning rvalue...
+                    [0x28ff08] constructor
+                    [0x28fef8] move assignment operator
+                    [0x28ff08] destructor
+                    ended assigning rvalue...
+```
