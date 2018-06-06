@@ -14,6 +14,8 @@
         (2) 当参数与成员变量名相同时，如this->n = n （不能写成n = n)
 ```
 
+# c++11 新特性
+
 ## 自动化推导 decltype
 
 ```shell
@@ -245,4 +247,64 @@
                     ended assigning rvalue...
 ```
 
-## 
+# 其他技巧
+
+## RAII 机制
+
+```shell
+    1.概念
+        (1) Resource Acquisition Is Initialization 机制　
+            A.为了解决的一个问题 在这个程序段结束时需要完成一些资源释放工作，那么正常情况下自然是没有什么问题，
+              但是当一个异常抛出时，释放资源的语句就不会被执行.  
+              
+            B. RAII 是C++语言的一种管理资源、避免泄漏的机制.C++标准保证任何情况下,已构造的对象最终会销毁,
+               即它的析构函数最终会被调用(不管是正常情况还是异常炮出) 
+               RAII 机制就是利用了C++的上述特性,在需要获取使用资源RES(如内存、文件句柄、网络连接、互斥量等等)的时候,
+               构造一个临时对象(T),
+               在其构造T时获取资源,在T生命期控制对RES的访问使之始终保持有效,最后在T析构的时候释放资源.
+               以达到安全管理资源对象,避免资源泄漏的目的。
+            C. 更加深层次理解
+                函数内部的一些成员是放置在栈空间上的,当函数返回时,这些栈上的局部变量就会立即释放空间,
+                于是Bjarne Stroustrup就想到确保能运行资源释放代码的地方就是在这个程序段（栈）中放置的对象的析构函数了,
+                因为stack winding会保证它们的析构函数都会被执行。RAII就利用了栈里面的变量的这一特点
+        
+        (2) 将初始化和资源释放都移动到一个包装类中的好处：
+                A. 保证了资源的正常释放
+                B. 省去了在异常处理中冗长而重复甚至有些还不一定执行到的清理逻辑，进而确保了代码的异常安全。
+                C. 简化代码体积。
+                
+    2.应用场景
+        (1) 文件操作
+            class SafeFile {
+            public:
+                SafeFile(const char *filename) : fileHandler(fopen(filename, "w+")) {
+                    if (fileHandler == NULL) {
+                        throw runtime_error("fopen");
+                    }
+                }
+                ~SafeFile() { fclose(fileHandler); }
+            
+                void write(const char* str) {
+                    if (fputs(str,fileHandler) == EOF) { throw runtime_error("fputs"); }
+                }
+            
+                void write(const char* buffer, size_t num) {
+                    if (num != 0 && fwrite(buffer,num,1,fileHandler) == 0) {
+                        throw runtime_error("fwrite");
+                    }
+                }
+            private:
+                FILE *fileHandler;
+                SafeFile(const SafeFile&);
+                SafeFile & operator=(const SafeFile&);
+            };
+            
+            int main(int argc, char *argv[]) {
+                SafeFile testFile("foo.test");
+                testFile.write("Hello RAII");
+            }
+            
+            这里当实例化　SafeFile对象时其打开　foo.test　文件,获得了文件描述符,这时候无需显式释放文件描述符,只要当该实例
+            出了作用域,则会调用析构函数进行释放.
+
+```
