@@ -1,3 +1,16 @@
+## 基本技巧
+
+```shell
+    1.c++中　构造= 与　赋值= 是不一样的
+        构造= 
+            Person a = getAlice();
+            
+        赋值=
+             Person a;
+             a = getAlice();
+
+```
+
 ## this 指针
 
 ```c++
@@ -161,7 +174,124 @@
                 cbar().foo(); // const对象调用A::foo()的const版本
             }
             
+    3.1 右值的重复拷贝
+            (1) 普通右值缺点
+                    右值虽然是不被后续计算所需要的，但它仍然需要构造和析构。 这在C++中造成了不少的代价
+                        class Person{
+                      
+                                public:
+                                    Person(const char* p){
+                                        size_t n = strlen(p) + 1;
+                                        name = new char[n];
+                                        memcpy(name, p, n);
+                                    }
+                                    
+                                    Person(const Person& p){
+                                        size_t n = strlen(p.name) + 1;
+                                        name = new char[n];
+                                        memcpy(name, p.name, n);
+                                    }
+                                    
+                                    ~Person(){ delete[] name; }
+                                    
+                                private:
+                                    char *name;
+                          };
+                    
+                    当我们拷贝Person对象时，会有额外的不需要的内存分配过程，例如：
+                    
+                    Person getAlice(){
+                        Person p("alice");      // 对象创建。调用构造函数，一次 new 操作
+                        return p;              
+                    }
+                    int main(){
+                        Person a = getAlice();  // 这里的"=" 是构造函数适用的"=",调用拷贝构造函数，一次 new 操作
+                                                // 右值析构。一次 delete 操作
+                        return 0;
+                    }  
+                    
+            (2) 返回值优化(右值重复拷贝的优化)
+                    
+                  class Person{
+                  public:
+                      char* name;
+                      Person(const char* p){
+                          log("constructor");
+                          size_t n = strlen(p) + 1;
+                          name = new char[n];
+                          memcpy(name, p, n);
+                      }
+                      Person(const Person& p){
+                          log("copy constructor");
+                          size_t n = strlen(p.name) + 1;
+                          name = new char[n];
+                          memcpy(name, p.name, n);
+                      }
+                  
+                    /*
+                     * 这里如果传实参为右值( getAlice() ), 则　形参必须定义为　const Person& p
+                     * 
+                     * const左值引用可以用右值对其赋值,因为常量不能被修改
+                     *                 const std::string& r = std::string(); //可以,正确
+                     */
+                      const Person& operator=(const Person& p){
+                          printf("=const Person& p[%s]\n", p.name);
+                          log("copy assignment operator");
+                          size_t n = strlen(p.name) + 1;
+                          name = new char[n];
+                          memcpy(name, p.name, n);
+                          return *this;
+                      }
+                  
+                      ~Person(){
+                          log("destructor");
+                          delete[] name;
+                      }
+                  
+                  private:
+                      void log(const char* msg)
+                      {
+                          cout << "[" << this << "] " << msg << "\n";
+                      }
+                  };
+                  
+                  Person getAlice(){
+                      Person p("alice"); return p;
+                  }
+                  
+                  int main(){
+                      cout<<"______构造函数start________________"<<endl;
+                      Person a = getAlice();   //这里 "=" 代表　构造函数,实例化Person类为 a 
+                      cout<<"______构造函数end________________"<<endl;
+                  
+                      cout<<"______赋值函数= start________________"<<endl;
+                      /*
+                       调用　a = getAlice(),包含很多步骤,
+                            1.首先是getAlice()函数里面有构造函数Person p("alice");
+                            2.紧接者　是　调用类的赋值重载函数, const Person& operator=(const Person& p)
+                               其中是实例a 的　赋值重载函数,
+                      */
+                      a = getAlice();
+                      cout<<"______赋值函数= end________________"<<endl;
+                  }
+                  
+                  结果:
+                        ______构造函数start________________
+                        [0x1111111111] constructor
+                        ______构造函数end________________
+                        ______赋值函数= start________________
+                        [0x2222222222] constructor
+                        =const Person& p[alice]
+                        [0x1111111111] copy assignment operator
+                        [0x2222222222] destructor
+                        ______赋值函数= end________________
+                        [0x1111111111] destructor
+                    
+            
     4.右值引用
+        (1) C++11的右值引用允许我们对右值进行修改,但之前的标准中右值是不允许被改变的,
+            实践中也通常使用const T&的方式传递右值,然而这是效率低下的做法
+            
             class Intvec
             {
             public:
@@ -214,15 +344,15 @@
             
        
             cout << "assigning rvalue...\n";
-            v2 = Intvec(33);
+            v2 = Intvec(33);    // 重载赋值函数
             cout << "ended assigning rvalue...\n";
             
             结果:
                 assigning rvalue...
-                [0x28ff08] constructor  Intvec(33) 临时对象调用了构造函数
-                [0x28fef8] copy assignment operator　Intvec v2 调用了重载赋值函数
-                [0x28fec8] copy constructor　　　　　　在重载赋值函数中定义了tmp的临时变量
-                [0x28fec8] destructor                 重载赋值函数调用完,tmp的临时变量出了作用域,自动调用析构函数
+                [0x28ff08] constructor                  Intvec(33) 临时对象调用了构造函数
+                [0x28fef8] copy assignment operator　   Intvec v2 调用了重载赋值函数
+                [0x28fec8] copy constructor　　　　　　  在重载赋值函数中定义了tmp的临时变量
+                [0x28fec8] destructor                  重载赋值函数调用完,tmp的临时变量出了作用域,自动调用析构函数
                 [0x28ff08] destructor                  v2 = Intvec(33);　Intvec(33)临时变量没有用处,自动调用析构函数
                 ended assigning rvalue...
                 
@@ -264,9 +394,8 @@
                在其构造T时获取资源,在T生命期控制对RES的访问使之始终保持有效,最后在T析构的时候释放资源.
                以达到安全管理资源对象,避免资源泄漏的目的。
             C. 更加深层次理解
-                函数内部的一些成员是放置在栈空间上的,当函数返回时,这些栈上的局部变量就会立即释放空间,
-                于是Bjarne Stroustrup就想到确保能运行资源释放代码的地方就是在这个程序段（栈）中放置的对象的析构函数了,
-                因为stack winding会保证它们的析构函数都会被执行。RAII就利用了栈里面的变量的这一特点
+                把资源用类进行封装起来,对资源操作都封装在类的内部,在析构函数中进行释放资源.当定义的局部变量的生命结束时,
+                它的析构函数就会自动的被调用,这样就不用程序员显示的去调用释放资源的操作
         
         (2) 将初始化和资源释放都移动到一个包装类中的好处：
                 A. 保证了资源的正常释放
@@ -306,5 +435,21 @@
             
             这里当实例化　SafeFile对象时其打开　foo.test　文件,获得了文件描述符,这时候无需显式释放文件描述符,只要当该实例
             出了作用域,则会调用析构函数进行释放.
+
+```
+
+## 值语义
+
+```shell
+    1.概念
+        值语义：对象的拷贝与原对象无关,c++中将基础类型(int,double等)都定义为值语义
+
+```
+
+## 引用语义
+
+```shell
+    1.概念
+        
 
 ```
