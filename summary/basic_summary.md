@@ -318,6 +318,9 @@
                         m_data[i] = other.m_data[i];
                 }
             
+                /*
+                    传统的重载赋值函数
+                */
                 Intvec& operator=(const Intvec& other)
                 {
                     log("copy assignment operator");
@@ -338,12 +341,19 @@
             
             Intvec v1(20);
             Intvec v2;
+            
+            // 当赋值符 "=" 右边为　左值时(v1)
             // 有普通的重载赋值函数(Intvec& operator=(const Intvec& other)和
-            // 右值引用重载赋值函数,优先调用普通的重载赋值函数
+            // 右值引用重载赋值函数(Intvec& operator=(Intvec&& other)),优先调用普通的重载赋值函数
             v2 = v1    
             
        
             cout << "assigning rvalue...\n";
+           　/*
+              * 当赋值符 "=" 右边为　右值时(Intvec(33))
+              * 有普通的重载赋值函数(Intvec& operator=(const Intvec& other)和
+              * 右值引用重载赋值函数(Intvec& operator=(Intvec&& other)),优先调用右值引用重载赋值函数
+              */
             v2 = Intvec(33);    // 重载赋值函数
             cout << "ended assigning rvalue...\n";
             
@@ -375,6 +385,33 @@
                     [0x28fef8] move assignment operator
                     [0x28ff08] destructor
                     ended assigning rvalue...
+                    
+                    
+                    
+                    
+        (2) 注意:
+                1.对于右值引用(针对重载的赋值函数Intvec& operator=(Intvec&& other))　只能针对
+                　赋值符 "=" 右边为　右值(Intvec(33))
+                　例如:
+                       (1):
+                            Intvec v2;
+                            v2 = Intvec(10); // 正确
+                            
+                       (2) 
+                             /*
+                              * 错误　
+                              *  赋值符 "=" 右边为左值时(v1)只能
+                              *   调用普通的重载赋值函数(Intvec& operator=(const Intvec& other))
+                              */
+                             Intvec v1(20);
+                             v2 = v1;   
+                              
+                2.当类定义了普通的重载赋值函数(Intvec& operator=(const Intvec& other))　和　
+                　右值引用(针对重载的赋值函数Intvec& operator=(Intvec&& other)),
+                  当赋值符 "=" 右边为右值(Intvec(33)),优先调用右值引用
+                  
+                3.当类只定义了普通的重载赋值函数(Intvec& operator=(const Intvec& other)), 
+                  赋值符 "=" 右边为右值(Intvec(33)) 和　赋值符 "=" 右边为左值时(v1)　都能被调用
 ```
 
 # 其他技巧
@@ -438,18 +475,43 @@
 
 ```
 
+# 值语义 与　引用语义
+
 ## 值语义
 
 ```shell
     1.概念
         值语义：对象的拷贝与原对象无关,c++中将基础类型(int,double等)都定义为值语义
+        
+    2.
+        标准库里的 complex<>, pair<>, vector<>, map<>, string 等等类型也都是值语义
 
 ```
 
-## 引用语义
+## 引用语义 (对象语义,指针语义)
 
 ```shell
     1.概念
+        引用语义: 一个对象被 系统标准的复制函数复制后,与 被复制的对象 共享底层资源,只要一个改变了另外一个就会改变.
         
+    2.
+        就像包含有 指针成员变量 的自定义类在默认拷贝构造函数下对其对象之间进行的拷贝.
+        拷贝后目标对象和源对象的指针成员变量仍指向同一块内存数据.
+        如果当其中一个被析构掉后,另一个对象的指针成员就会沦为名副其实的悬垂指针！
+        
+    3. 对于一些特定的对象　是不可复制的(拷贝一个线程, 复制一个 tcp连接), 对于这种对象应该禁止他们的复制操作. 
+       最好的方法是继承 boost::noncopyable
+       
+       想把 tcp 连接放入 vector 或者在函数中传递怎么办? 我是用的方法是统一使用 shared_ptr, 这样资源泄漏的问题也就解决了. 
+       所以, 在实现一个资源相关的类时, 用 RAII 方法封装一下资源, 然后继承 noncopyable 应该能解决大部分问题.
+        
+
+```
+
+## 注意事项
+
+```shell
+    c++编译器会为类提供默认的拷贝构造函数和重载函数,一般我们不需要自己重写这些,
+    因为只要每个数据成员都为 值语义, 编译器就可以调用默认的成员拷贝（浅拷贝）
 
 ```
