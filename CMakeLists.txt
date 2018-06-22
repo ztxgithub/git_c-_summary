@@ -14,6 +14,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fpermissive -pthread -DMG_EN
 #配置头文件目录
 include_directories(
         include
+        /usr/include/boost/
 )
 
 set(SRC
@@ -28,9 +29,12 @@ add_executable(c_plus_example
 # 可以对源代码中宏定义进行声明
 #add_definitions("-DCMCC")
 
-link_directories("/usr/local/lib/")
-link_directories(/usr/lib/x86_64-linux-gnu)
+link_directories(
+        /usr/local/lib/
+        /usr/lib/x86_64-linux-gnu
+        /usr/lib/
 
+)
 
 set(LIBRARIES
     m pthread

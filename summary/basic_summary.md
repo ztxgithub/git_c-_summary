@@ -391,7 +391,9 @@
                     
         (2) 注意:
                 1.对于右值引用(针对重载的赋值函数Intvec& operator=(Intvec&& other))　只能针对
-                　赋值符 "=" 右边为　右值(Intvec(33))
+                　赋值符 "=" 右边为　右值(Intvec(33)), 右值引用的形参　是　Intvec&&　可以不加 const,
+                  需要注意的是　当右值Intvec&& other中的成员函数有指针时,记得防止该右值释放资源导致,
+                  赋值对象的资源也被释放
                 　例如:
                        (1):
                             Intvec v2;
@@ -485,6 +487,25 @@
         
     2.
         标准库里的 complex<>, pair<>, vector<>, map<>, string 等等类型也都是值语义
+        
+    3.值语义　与　C++ 关系
+        (1) class 的 layout(内存分布) 与 C struct 一样,没有额外的开销. 定义一个“只包含一个 int 成员的 class ”的对象开销
+            和定义一个 int 一样。
+        (2) class data member(成员变量) 都默认是 uninitialized,因为函数局部的 int 是 uninitialized。
+        (3) class 可以在 stack(栈) 上创建,也可以在 heap(堆上) 上创建.因为 int 可以是 stack variable。
+        (4) class 的数组就是一个个 class 对象挨着,没有额外的 indirection。因为 int 数组就是这样。
+        (5) 编译器会为 class 默认生成 copy constructor 和 assignment operator。
+            其他语言没有 copy constructor 一说，也不允许重载 assignment operator。
+            C++ 的对象默认是可以拷贝的，这是一个尴尬的特性。
+        (6) 当 class type 传入函数时(函数的参数以　class),默认是 make a copy （除非参数声明为 reference 引用 &）.
+            因为把 int 传入函数时是 make a copy。
+        (7) 当函数返回一个 class type 时,只能通过 make a copy（C++ 不得不定义 RVO 来解决性能问题）。
+            因为函数返回 int 时是 make a copy。
+        (8) 以 class type 为成员时，数据成员是嵌入的。
+            例如 pair<complex<double>, size_t> 的 layout 就是 complex<double> 挨着 size_t.
+            
+        总结:
+            这些设计带来了性能上的好处,原因是 memory locality (内存分布的局部性)
 
 ```
 
