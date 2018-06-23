@@ -13,62 +13,24 @@
 using namespace std;
 
 
-class Parent;
-typedef boost::shared_ptr<Parent> ParentPtr;
 
-class Child : boost::noncopyable
+
+class RVO
 {
-    public:
-        explicit Child(const ParentPtr& myMom_,
-                       const ParentPtr& myDad_)
-                : myMom(myMom_),
-                  myDad(myDad_)
-        {
-        }
-
-    private:
-        boost::weak_ptr<Parent> myMom;
-        boost::weak_ptr<Parent> myDad;
+public:
+    RVO(){printf("I am in constructor\n");}
+    RVO (const RVO& c_RVO) {printf ("I am in copy constructor\n");}
+    ~RVO(){printf ("I am in destructor\n");}
+    int mem_var;
 };
-
-typedef boost::shared_ptr<Child> ChildPtr;
-
-class Parent : boost::noncopyable
+RVO MyMethod (int i)
 {
-    public:
-        Parent()
-        {
-        }
-
-        void setSpouser(const ParentPtr& spouser)
-        {
-            mySpouser = spouser;
-        }
-
-        void addChild(const ChildPtr& child)
-        {
-            myChildren.push_back(child);
-        }
-
-    private:
-        boost::weak_ptr<Parent> mySpouser;
-        std::vector<ChildPtr> myChildren;
-};
-
+    RVO rvo;
+    rvo.mem_var = i;
+    return (rvo);
+}
 int main()
 {
-    ParentPtr mom(new Parent);
-    ParentPtr dad(new Parent);
-    mom->setSpouser(dad);
-    dad->setSpouser(mom);
-    {
-        ChildPtr child(new Child(mom, dad));
-        mom->addChild(child);
-        dad->addChild(child);
-    }
-    {
-        ChildPtr child(new Child(mom, dad));
-        mom->addChild(child);
-        dad->addChild(child);
-    }
+    RVO rvo;
+    rvo=MyMethod(5);
 }

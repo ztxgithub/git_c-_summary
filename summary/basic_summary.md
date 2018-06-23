@@ -8,6 +8,23 @@
         赋值=
              Person a;
              a = getAlice();
+             
+    2.构造函数类型
+        (1) 构造函数
+            Person(const char* p)
+            {
+                size_t n = strlen(p) + 1;
+                name = new char[n];
+                memcpy(name, p, n);
+            }
+            
+        (2) 复制构造函数
+             Person(const Person& p)
+             {
+                size_t n = strlen(p.name) + 1;
+                name = new char[n];
+                memcpy(name, p.name, n);
+            　}
 
 ```
 
@@ -474,6 +491,44 @@
             
             这里当实例化　SafeFile对象时其打开　foo.test　文件,获得了文件描述符,这时候无需显式释放文件描述符,只要当该实例
             出了作用域,则会调用析构函数进行释放.
+
+```
+
+## 返回值优化（Return value optimization,缩写为RVO）
+
+```shell
+
+    1.概要
+        返回值优化(RVO) 是C++的一项编译优化技术,它好处是在于： 可以省略函数返回过程中 复制构造函数的多余调用,
+        解决 “C++ 中长久以来为人们所诟病的临时对象的效率问题”.
+        
+    2.过程
+        RVO MyMethod (int i)
+        {
+          RVO rvo;
+          rvo.mem_var = i;
+          return (rvo);
+        }
+        
+         RVO rvo_instance;
+         rvo_instance = MyMethod(5);
+         
+        (1) 非返回值优化
+                A. 在函数的栈中创建一个名为rvo的对象 (rvo 构造函数)
+                B. 用变量rvo来构造需要返回的临时对象　(return 的临时对象构造函数)
+                C. 函数返回结束，析构掉在函数内建立的所有对象(rvo 析构函数)
+                D. 继续表达式rvo=MyMethod(5);里的操作语句结束,临时对象析构函数
+                
+        (2) 采用返回值优化
+                编译器识别出了 return后的返回对象rvo和函数的返回对象的类型一致,就会对代码进行优化 .
+                编译器转而会将二者的直接关联在一起,意思就是,对rvo的操作就相当于直接对 临时对象的操作
+                作用是：
+                    消除函数返回时创建的临时对象
+                    
+    3.编译
+        (1) 禁用返回值优化(RVO)
+                > g++ -o rvo_test rvo_test.cc -fno-elide-constructors
+    
 
 ```
 
