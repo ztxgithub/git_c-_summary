@@ -9,8 +9,8 @@
              Person a;
              a = getAlice();
              
-    2.构造函数类型
-        (1) 构造函数
+    2.特殊类型的成员函数
+        (1) 默认构造函数
             Person(const char* p)
             {
                 size_t n = strlen(p) + 1;
@@ -25,6 +25,16 @@
                 name = new char[n];
                 memcpy(name, p.name, n);
             　}
+            
+        (3) 析构函数   X::~X();                     // destructor
+            
+        (4) 赋值操作符  X& X::operator=(const X&);   // copy assignment operator
+        
+        C++11 标准
+        
+        (5) 转移构造函数　 X::X(X&&);                   // move constructor
+        (6) 转移赋值操作符  X& X::operator=(X&&);       // move assignment operator
+            
 
 ```
 
@@ -306,8 +316,10 @@
                     
             
     4.右值引用
-        (1) C++11的右值引用允许我们对右值进行修改,但之前的标准中右值是不允许被改变的,
+        (1) C++11的右值引用允许我们对右值进行修改(class &&var),但之前的标准中右值是不允许被改变的,
             实践中也通常使用const T&的方式传递右值,然而这是效率低下的做法
+            
+            右值引用　X && 对应的函数中　Intvec& operator=(const Intvec&& other),传入的参数只能是右值
             
             class Intvec
             {
@@ -667,5 +679,125 @@
          例如:
             string b(x + y);   //临时对象调用了右值引用
             string c(some_function_returning_a_string());   // 临时对象调用了右值引用
+            
+    2.移动语义的使用场景
+        (1) 将昂贵的拷贝运算变为转移
+                如果一个对象没有保持至少一个额外的资源(该对象中没有申请内存等),
+                通过move语义实现的转移构造函数就不会带来任何好处,在这种情况下,复制或转移一个对象代价是相同的
+                
+                例如：下面的类使用　转移构造函数是没有意义的
+                        class cannot_benefit_from_move_semantics
+                        {
+                            int a;        // moving an int means copying an int
+                            float b;      // moving a float means copying a float
+                            double c;     // moving a double means copying a double
+                            char d[64];   // moving a char array means copying a char array
+                        
+                            // ...
+                        };
+                        
+        (2) 用于实现“安全转移类型”
+                这个类型不能复制,只能转移.例如 锁,文件句柄和唯一拥有性（unique ownership semantics）的智能指针.
+                
+                这里我们要讨论废弃C++ 98中的智能指针模板std::auto_ptr，在C++ 11标准中被std::unique_ptr代替。
+                中级C++程序员可能都会对std::auto_ptr有所了解，因为他所表现出的“转移语义”。
+                这似乎是讨论C++ 11 中move语义的一个不错的起点
+                
+    3.转移构造函数
+        使用右值引用X&&作为参数 的最有用的函数之一就是 转移构造函数X::X(X&& source),
+        它的主要作用是把源对象的本地资源转移给当前对象.
+        
+        例如, C++ 11中, std::auto_ptr<T>已经被 std::unique_ptr<T>所取代, std::unique_ptr<T>利用的右值引用,
+             传入的参数只能是右值
+             
+             移动语义的　移动构造函数
+             unique_ptr(unique_ptr&& source)   // note the rvalue reference
+                  {
+                      ptr = source.ptr;
+                      source.ptr = nullptr;
+                  }
+                  
+                  
+             unique_ptr<Shape> a(new Triangle);
+             unique_ptr<Shape> b(a);                 // error,编译错误,转移构造函数只能接受 右值
+             unique_ptr<Shape> c(make_triangle());   // okay
+             
+    4.转移赋值操作符
+        它的作用是释放旧资源,并从参数中获取新资源
+         例子:
+                 unique_ptr& operator=(unique_ptr source)   // note the missing reference
+                     {
+                         std::swap(ptr, source.ptr);
+                         return *this;
+                     }
+                     
+                  这里赋值操作符(=) ,用参数类型用　unique_ptr source　是根据编译器来决定的,在c++11中,如果参数为左值
+                  则编译器调用拷贝构造函数,如果参数是右值,则编译器调用转移构造函数.
+                  
+                  
+                  
+    以下是不常用的知识点:
+    
+        1.转移左值
+            有时候我们想让编译器把左值当作右值对待,以便能使用转移构造函数,即便这有点不安全。
+            出于这个目的，C++ 11在标准库的头文件<utility>中提供了一个模板函数std::move
+                例子:
+                     unique_ptr<Shape> a(new Triangle);
+                     unique_ptr<Shape> b(a);              // still an error, 编译错误,转移构造函数只能接受 右值
+                     unique_ptr<Shape> c(std::move(a));   // okay ,正确可以通过　move(a)来将左值(a)当成　右值传入
+                     
+                    第三行之后.a不在拥有Triangle对象。不过这没有关系,因为通过明确的写出std::move(a),
+                    转移构造函数可以对a做任何想要做的事情来初始化c；以后不再需要需要a
+                    
+        2.永远不要使用std::move把自动释放类型的对象转移出函数内部
+            例如：
+                    (1) 下面是错误的代码
+                             unique_ptr<Shape>&& flawed_attempt()   // DO NOT DO THIS!
+                            {
+                                 unique_ptr<Shape> very_bad_idea(new Square);
+                                 return std::move(very_bad_idea);   // WRONG!　编译错误
+                            }
+                            
+                            move虽然能够将　左值　当成　右值使用,但是终将还是左值, very_bad_idea还是函数内部的局部变量
+                            再调完该函数后,very_bad_idea将释放其内存,还没来得及进行移动语义(转移构造函数),资源就被释放了
+                            
+                    (2) 正确的做法:
+                             unique_ptr<Shape> make_square()
+                             {
+                                 unique_ptr<Shape> result(new Square);
+                                 return result;   // note the missing std::move
+                             }
+                            
+        3.转移进成员变量
+                (1) 错误的代码
+                          class Foo
+                          {
+                              unique_ptr<Shape> member;
+                          
+                          public:
+                          
+                              Foo(unique_ptr<Shape>&& parameter)
+                              : member(parameter)   // error,不能通过右值引用作为实参来传递　转移构造函数　
+                              {}
+                         };
+             　　　　　　　
+                         编译器肯定会“抱怨”parameter 本身是左值。如果你查看它的类型,它是右值引用,
+                         但是右值引用仅仅是指向右值的引用,并不意味着右值引用本身是右值.事实上,
+                         parameter 仅仅是一个普通变量名而已,在构造函数内部，你可以想怎么用就怎么用，它永远指向同一个对象.
+                         对它进行隐式的转移是危险的，因此C++从语言层面上禁止这样使用。
+                          
+                         一个命名的右值引用本身是一个左值，跟其他普通左值一样
+                         
+                 (2) 解决方案
+                          class Foo
+                          {
+                              unique_ptr<Shape> member;
+                          
+                          public:
+                          
+                              Foo(unique_ptr<Shape> parameter) //直接值传递算了
+                              : member(std::move(parameter))   
+                              {}
+                         };
 
 ```
