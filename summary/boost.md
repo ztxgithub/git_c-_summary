@@ -119,7 +119,7 @@
             };  
             
             int array[] = { 1, 3, 5, 7, 9 };  
-            //_1，_2 是占位符  
+            //_1，_2 是占位符 ,对于新的函数的参数序号
             //通过bind函数将原有的函数,提供默认形参,以形成新的函数
             auto fun1 = bind(fun, _1, _2, 5); 
              
@@ -136,6 +136,131 @@
                 _1,_2是占位符,定义于命名空间placeholders中._1是newfun的第一个参数,_2是newfun的第二个参数
                 
         (2) 常见用法二
+                更改参数的调用顺序
+                例如:
+                    int fun(int a, int b);
+                    
+                    auto newfun = bind(fun, _2, _1);
+                    
+                    调用newfun(x, y); 相当于调用fun(y, x);
+                    
+    3.绑定类成员函数
+        (1) 对类成员函数进行绑定与对普通函数进行绑定,稍有不同：对类成员函数绑定需要用到类对象或类指针
+            这个很好理解：类成员函数被封装在类中,故不可随便访问，需借助类对象或类指针。
+            
+                    #include <iostream>  
+                    #include <functional>  
+                    using namespace std;  
+                    using namespace std::placeholders;  
+                    class MyClass  
+                    {  
+                    public:  
+                        void fun1(void)  
+                        {  
+                            cout << "void fun1(void)" << endl;  
+                        }  
+                        int fun2(int i)  
+                        {  
+                            cout << "int fun2(int i)" << " i = " << i << endl;  
+                            return i;  
+                        }  
+                    };  
+                    
+                  int main()
+                  {
+                      MyClass my;
+                      //使用类对象绑定
+                      auto fun1 = bind(&MyClass::fun1, my);
+                      fun1();
+                  
+                      MyClass *p;
+                      //使用类指针绑定
+                      auto fun2 = bind(&MyClass::fun2, p, _1);
+                      fun2(1);
+                      
+                      return 0;
+                  }
+                  
+    4.其他注意事项
+        (1) std::ref()表示传引用, std::cref()表示传不变引用, 
+            std::ref()和std::cref()是针对函数式编程(如std::bind)
+        
+                #include <functional>
+                #include <iostream>
+                 
+                void f(int& n1, int& n2, const int& n3)
+                {
+                    std::cout << "In function: " << n1 << ' ' << n2 << ' ' << n3 << '\n';
+                    ++n1; // 如果是调用bind() 进行函数绑定, 则不能用传统意义上的引用
+                    ++n2; // increments the main()'s n2
+                    // ++n3; // compile error
+                }
+                 
+                int main()
+                {
+                    int n1 = 1, n2 = 2, n3 = 3;
+                    std::function<void()> bound_f = std::bind(f, n1, std::ref(n2), std::cref(n3));
+                    n1 = 10;
+                    n2 = 11;
+                    n3 = 12;
+                    std::cout << "Before function: " << n1 << ' ' << n2 << ' ' << n3 << '\n';
+                    bound_f();
+                    std::cout << "After function: " << n1 << ' ' << n2 << ' ' << n3 << '\n';
+                }
                 
+                结果:
+                    Before function: 10 11 12
+                    In function: 1 11 12
+                    After function: 10 12 12
+                    
+                在执行std::bind后,在函数f()中n1的值仍然是1, n2和n3改成了修改的值.
+                说明std::bind使用的是参数的拷贝而不是引用。
+                具体为什么std::bind不使用引用，可能确实有一些需求，使得C++11的设计者认为默认应该采用拷贝,
+                如果使用者有需求，加上std::ref即可。
+
+```
+
+## functioin
+
+```shell
+    1.它是函数、函数对象、函数指针、和成员函数的包装器,可以容纳任何类型的函数对象,函数指针,引用函数,成员函数的指针.
+      以统一的方式处理函数,函数对象,函数指针和成员函数。
+      允许保存和延迟执行函数.
+      
+    2.简单应用
+    
+        #include <functional>  
+        #include <iostream>  
+           
+        struct Foo {  
+            Foo(int num) : num_(num) {}  
+            void print_add(int i) const { std::cout << num_+i << '\n'; }  
+            int num_;  
+        };  
+           
+        void print_num(int i)  
+        {  
+            std::cout << i << '\n';  
+        }  
+           
+        int main()  
+        {  
+            // 保存自由函数  
+            std::function<void(int)> f_display = print_num;  
+            f_display(-9);  
+           
+            // 保存 lambda 表达式  
+            std::function<void()> f_display_42 = []() { print_num(42); };  
+            f_display_42();  
+           
+            // 保存 std::bind 的结果  
+            std::function<void()> f_display_31337 = std::bind(print_num, 31337);  
+            f_display_31337();  
+           
+            // 保存成员函数  
+            std::function<void(const Foo&, int)> f_add_display = &Foo::print_add;  
+            Foo foo(314159);  
+            f_add_display(foo, 1);  
+        }  
 
 ```
