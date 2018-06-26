@@ -88,5 +88,54 @@
         
     6. > ldconfig
                                     
+```
+
+##  bind
+
+```shell
+
+    1.概念
+        (1) bind就是函数适配器
+                适配器是一种机制,把已有的东西改吧改吧、限制限制,从而让它适应新的逻辑.
+                需要指出, 容器、迭代器和函数都有适配器。
+                bind就是一个函数适配器,它接受一个可调用对象,生成一个新的可调用对象来适应原对象的参数列表
+                
+    2.简单应用
+    
+        #include <iostream>  
+        #include <functional>  
+        using namespace std;  
+        using namespace std::placeholders;  // 提供占位符
+          
+        int main()  
+        {  
+            auto fun = [](int *array, int n, int num){  
+                for (int i = 0; i < n; i++)  
+                {  
+                    if (array[i] > num)  
+                        cout << array[i] << ends;  
+                }  
+                cout << endl;  
+            };  
+            
+            int array[] = { 1, 3, 5, 7, 9 };  
+            //_1，_2 是占位符  
+            //通过bind函数将原有的函数,提供默认形参,以形成新的函数
+            auto fun1 = bind(fun, _1, _2, 5); 
+             
+            //等价于调用fun(array, sizeof(array) / sizeof(*array), 5);  
+            fun1(array, sizeof(array) / sizeof(*array));  
+            cin.get();  
+            return 0;  
+        }  
+        
+        (1) 常见用法一
+                fun()的调用需要传递三个参数,而用bind()进行绑定后只需两个参数了,
+                因为第三个参数在绑定时被固定了下来,减少函数参数的调用
+                
+                _1,_2是占位符,定义于命名空间placeholders中._1是newfun的第一个参数,_2是newfun的第二个参数
+                
+        (2) 常见用法二
+                
 
 ```
