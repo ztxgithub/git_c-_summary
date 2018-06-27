@@ -217,6 +217,23 @@
                 说明std::bind使用的是参数的拷贝而不是引用。
                 具体为什么std::bind不使用引用，可能确实有一些需求，使得C++11的设计者认为默认应该采用拷贝,
                 如果使用者有需求，加上std::ref即可。
+                
+        (2) 
+                void fun_2(int &a,int &b)  
+                {  
+                    a++;  
+                    b++;  
+                    cout<<a<<"  "<<b<<endl;  
+                } 
+                
+                int n = 2;  
+                int m = 3;  
+                   
+                auto f4 = bind(fun_2, n,placeholders::_1);  
+                f4(m); //print:3  4  
+               
+                cout<<m<<endl;//print:4  说明：bind对于不事先绑定的参数，通过std::placeholders传递的参数是通过引用传递的  
+                cout<<n<<endl;//print:2  说明：bind对于预先绑定的函数参数是通过值传递的 
 
 ```
 
