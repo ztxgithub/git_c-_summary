@@ -84,3 +84,51 @@
                     我们同样可以使用访问虚函数表的方式来访问这些non-public的虚函数
                     
 ```
+
+## 基类的析构函数为什么要用virtual虚析构函数(跟多态有关系)
+
+```shell
+    1.只有当一个类被用来作为基类的时候，才把析构函数写成虚函数,主要是针对用基类指针指向派生类对象,delete 基类指针　
+    　动态调用派生类的析构函数,再调用基类的析构函数．
+    　
+    2.C++中基类采用virtual虚析构函数是为了防止内存泄漏。具体地说，
+       如果派生类中申请了内存空间,并在其析构函数中对这些内存空间进行释放.
+       假设基类中采用的是非虚析构函数,当删除基类指针指向的派生类对象时就不会触发动态绑定,
+       因而只会调用基类的析构函数,而不会调用派生类的析构函数。
+       那么在这种情况下，派生类中申请的空间就得不到释放从而产生内存泄漏。所以，
+       为了防止这种情况的发生，C++中基类的析构函数应采用virtual虚析构函数
+       
+    3.虚函数是动态绑定的基础
+    4.实例代码
+        
+        class Base {
+             public:
+                    ~Base() {
+                      cout << "~Base()" << endl;
+                    }
+        };
+        
+        
+        class Derived : public Base {
+             public:
+              Derived():name_(new string("NULL")) {}
+              Derived(const string& n):name_(new string(n)) {}
+             
+              ~Derived() {
+                delete name_;
+                cout << "~Derived(): name_ has been deleted." << endl;
+              }
+             
+             private:
+              string* name_;
+         
+         }
+         
+         Derived　*d = new Derived();
+         delete d;  //这种情况下不需要考虑基类析构函数是否为虚函数, 是派生类对象指针,析构时调用相应派生类的析构函数
+         
+         Base　*b = new Derived();
+         delete b;   // 这时需要基类析构函数定义为虚函数,动态调用派送类的析构函数
+
+
+```
