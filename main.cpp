@@ -14,18 +14,76 @@
 using namespace std;
 using namespace std::placeholders;
 
-class base{
-public :
-    static base base_object1;//正确，静态数据成员
-//    base _object2;//错误
-    base *pObject;//正确，指针
-    base &mObject;//正确，引用
+class ASingleton
+{
+public:
+    static ASingleton* getInstance()
+    {
+        static ASingleton instance;
+        return &instance;
+    }
+    void do_something()
+    {
+        cout<<"ASingleton do_something!"<<endl;
+    }
+protected:
+    struct Object_Creator
+    {
+        Object_Creator()
+        {
+            ASingleton::getInstance();
+        }
+    };
+    static Object_Creator _object_creator;
+
+    ASingleton();
+    ~ASingleton() {}
 };
 
 
+class BSingleton
+{
+public:
+    static BSingleton* getInstance()
+    {
+        static BSingleton instance;
+        return &instance;
+    }
+    void do_something()
+    {
+        cout<<"BSingleton do_something!"<<endl;
+    }
+protected:
+    struct Object_Creator
+    {
+        Object_Creator()
+        {
+            BSingleton::getInstance();
+        }
+    };
+    static Object_Creator _object_creator;
+
+    BSingleton();
+    ~BSingleton() {}
+};
+
+
+ASingleton::Object_Creator ASingleton::_object_creator;
+//BSingleton::Object_Creator BSingleton::_object_creator;
+
+
+
+ASingleton::ASingleton()
+{
+    cout<<"ASingleton constructor!"<<endl;
+    BSingleton::getInstance()->do_something();
+}
+BSingleton::BSingleton()
+{
+    cout<<"BSingleton constructor!"<<endl;
+}
 
 int main()
 {
-//
     return 0;
 }
