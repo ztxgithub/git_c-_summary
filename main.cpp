@@ -14,76 +14,29 @@
 using namespace std;
 using namespace std::placeholders;
 
-class ASingleton
+
+template<class T>
+class Functor
 {
 public:
-    static ASingleton* getInstance()
+    enum Type{Plus,Sub};
+    Functor(Type t = Plus) :type(t){}
+    T operator()(T a, T b)
     {
-        static ASingleton instance;
-        return &instance;
+        if (type == Plus) return a + b;
+        return a - b;
     }
-    void do_something()
-    {
-        cout<<"ASingleton do_something!"<<endl;
-    }
-protected:
-    struct Object_Creator
-    {
-        Object_Creator()
-        {
-            ASingleton::getInstance();
-        }
-    };
-    static Object_Creator _object_creator;
-
-    ASingleton();
-    ~ASingleton() {}
+private:
+    Type type;
 };
-
-
-class BSingleton
-{
-public:
-    static BSingleton* getInstance()
-    {
-        static BSingleton instance;
-        return &instance;
-    }
-    void do_something()
-    {
-        cout<<"BSingleton do_something!"<<endl;
-    }
-protected:
-    struct Object_Creator
-    {
-        Object_Creator()
-        {
-            BSingleton::getInstance();
-        }
-    };
-    static Object_Creator _object_creator;
-
-    BSingleton();
-    ~BSingleton() {}
-};
-
-
-ASingleton::Object_Creator ASingleton::_object_creator;
-//BSingleton::Object_Creator BSingleton::_object_creator;
-
-
-
-ASingleton::ASingleton()
-{
-    cout<<"ASingleton constructor!"<<endl;
-    BSingleton::getInstance()->do_something();
-}
-BSingleton::BSingleton()
-{
-    cout<<"BSingleton constructor!"<<endl;
-}
-
 int main()
 {
+    //同时定义了一个加法器和一个减法器。
+    Functor<int> plus(Functor<int>::Plus);
+    Functor<int> sub(Functor<int>::Sub);
+    int a = 5, b = 3;
+    cout << plus(a, b) << endl;
+    cout << sub(a, b) << endl;
+    cout << Functor<int>::Sub << endl;
     return 0;
 }

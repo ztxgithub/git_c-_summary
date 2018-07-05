@@ -72,6 +72,9 @@
                                       2. 线程B进入instance(), 检查出pInstance非空，直接将pInstance返回(return)给调用者
                                          之后,调用者使用该返回指针去访问Singleton对象显然这个Singleton对象实际上
                                          还未被构造出来
+                                         
+                解决方法:
+                    在　pInstancep　变量前加入　volatile,确保执行顺序
         
     3.Singleton与全局变量的区别
         (1) 全局变量的缺点
