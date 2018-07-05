@@ -35,6 +35,43 @@
          解决方法:
             1.较为简单的方法, 只需要在第9行　if (NULL == instance) 前加锁(Lock)进行临界资源保护, 缺点是　
             　每次访问该函数都需要进行一次加锁操作,影响程序的性能和执行效率.
+            
+            2.双重检查锁定模式
+                调用者在调用instance()时,pInstance在大部分时候都是非空的,因此没必要再次初始化。所以,
+                DCLP在 加锁之前 先做了一次pInstance是否为空的检查.只有判断结果为真（即pInstance还未初始化）,
+                加锁操作才会进行,然后再次检查pInstance是否为空(这就是该模式被命名为双重检查的原因).
+                第二次检查是必不可少的，因为在第一次检验pInstance和加锁之间,可能有另一个线程对pInstance进行初始化.
+                代码如下:
+                        Singleton* Singleton::instance() 
+                        {
+                            if (pInstance == 0) 
+                            { // 1st test 第一次检查
+                                Lock lock;
+                                if (pInstance == 0) 
+                                { // 2nd test 第二次检查
+                                    pInstance = new Singleton;
+                                }
+                            }
+                            return pInstance;
+                        }
+                        
+                存在问题:
+                    (1) 在多线程中　DCLP与　指令执行顺序(编译器的执行指令顺序有关)
+                            例如:
+                                 pInstancep  = new Singleton
+                                 这条语句实际做了三件事情：
+                                     第一步：为Singleton对象分配一片内存
+                                     第二步：构造一个Singleton对象，存入已分配的内存区
+                                     第三步：将pInstance指向这片内存区
+                                     
+                               　其中有些编译器会将 步骤2和步骤3　执行顺序进行颠倒,如果严格按照步骤1,步骤2,步骤3进行执行
+                               　是不会有问题的,但编译器按照　步骤1,步骤3,步骤2　来执行,则在多线程中会有问题
+                               　因为　1. 线程A进入instance(),检查出pInstance为空,请求加锁,
+                                         而后执行由步骤1和步骤3组成的语句.之后线程A被挂起.此时，pInstance已为非空指针,
+                                         但pInstance指向的内存里的Singleton对象还未被构造出来。
+                                      2. 线程B进入instance(), 检查出pInstance非空，直接将pInstance返回(return)给调用者
+                                         之后,调用者使用该返回指针去访问Singleton对象显然这个Singleton对象实际上
+                                         还未被构造出来
         
     3.Singleton与全局变量的区别
         (1) 全局变量的缺点
