@@ -60,7 +60,103 @@
                 
                 int i[]={1,2,3,4,5};
                 for_each(i, i + 5, display<int>());
-            
-        
+                
+        (3) 注意事项
+                我们会在不经意间使用的　值传递　或者是　本身使用库函数的时候库函数参数使用的是值传递,
+                这样就会导致对象信息丢失的问题,所以说我们尽可能的不要在重载()函数中去改变对象成员属性的值
+                
+                例如下面是错误代码:
+                    class Average
+                    {
+                        public:
+                            Average():count(0), sum(0){ }
+                            void operator()(double num)   //每次调用这个仿函数就相当于往里面添加了一个数
+                            {
+                                count++;
+                                sum += num;
+                            }
+                            double GetAverage(){ return sum / count; }     //最后由这个方法得到当前的平均值
+                            
+                        private:
+                            int count;
+                            double sum;
+                    };
                     
+                    template < class T ,class F>
+                    void For_each(T begin, T end, F functor)         //这是一个手动实现的一个简单的for_each.
+                    {
+                    	for (T it = begin; it != end; it++)
+                    		functor(*it);
+                    		
+                        return functor;
+                    }
+                    
+                    int main()
+                    {
+                    	vector<int> arr = { 1, 2, 3, 4, 5 };
+                    	Average result;
+                    	For_each(arr.begin(), arr.end(), result);　// 这边是 值传递
+                    	cout << result.GetAverage() << endl; //　错误，会出现 除0现象
+                    	return 0;
+                    }
+                    
+                    解决方法:
+                    
+                        //这里的Average()相当于一个临时对象
+                        Average result = For_each(arr.begin(), arr.end(), Average()); 
+                        cout << result.GetAverage() << endl
+            
+        (4) 
+            A.生成器(generator)是不用参数就可以调用的函数符(仿函数)。
+            
+            一元函数(unary function) 是用一个参数就可以调用的函数符。
+            
+            二元函数(binary function)是用两个参数就可以调用的函数符。
+            
+            例如：供给给for_each()的函数符应该是一个一元函数，因为它每次用于一个容器元素
+            
+            实现Vector所有元素求积的功能
+            
+                vector<int> arr = { 1, 2, 3, 4, 5 };
+                int ans = For_each(arr.begin(), arr.end(), Mul<int>())　　//　传入2个参数,靠考虑到放回参数的类型
+                
+            如何在For_each中知道我的第三个参数F functor 这个仿函数的执行的返回值呢(也就是class Mul 的模板类型参数T)？ 
+            所以我们在这里我们需要对Mul这个类中引入三个类型。分别是first_argument_type,second_argument_type,
+            result_type:
+            
+            方法一:
+        
+                    template<class T>
+                    class Mul
+                    {
+                        public:
+                            T operator()(T a, T b)
+                            {
+                                return a*b;
+                            }
+                            typedef T first_argument_type, second_argument_type, result_type;
+                    };
+                            
+                    template < class T, class F>
+                    //因为在这里编译器不知道result_type是F的成员变量还是类型,所以要用关键字typename限定。
+                    typename F::result_type For_each(T begin, T end, F functor) 
+                    {
+                        typename F::result_type ans = 1; 
+                        for (T it = begin; it != end; it++)
+                            ans = functor(*it, ans); 
+                        return ans;
+                    }
+                    
+                    
+            方法二:
+                    template<class T>
+                    class Mul : binary_function<T,T,T>
+                    {
+                        public:
+                            T operator()(T a, T b)
+                            {
+                                return a*b;
+                            }
+                    }; 
+            
 ```

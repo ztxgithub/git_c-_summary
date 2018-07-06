@@ -15,28 +15,40 @@ using namespace std;
 using namespace std::placeholders;
 
 
-template<class T>
-class Functor
-{
+class C{
+    int m;
 public:
-    enum Type{Plus,Sub};
-    Functor(Type t = Plus) :type(t){}
-    T operator()(T a, T b)
-    {
-        if (type == Plus) return a + b;
-        return a - b;
-    }
-private:
-    Type type;
+    C(){cout<<"in C constructor"<<endl;}
+    ~C(){cout<<"in C destructor"<<endl;}
 };
-int main()
-{
-    //同时定义了一个加法器和一个减法器。
-    Functor<int> plus(Functor<int>::Plus);
-    Functor<int> sub(Functor<int>::Sub);
-    int a = 5, b = 3;
-    cout << plus(a, b) << endl;
-    cout << sub(a, b) << endl;
-    cout << Functor<int>::Sub << endl;
-    return 0;
+
+class A{
+public:
+    A(){cout<<"in A constructor"<<endl;}
+    ~A(){cout<<"in A destructor"<<endl;}
+};
+
+class B:public A{
+public:
+    C c;
+    char* resource;
+
+    B(){
+        resource=new char[100];
+        cout<<"in B constructor"<<endl;
+        throw -1;
+    }
+    ~B(){
+        cout<<"in B destructor"<<endl;
+        delete[]  resource;
+    }
+};
+
+int main(){
+    try{
+        B b;
+    }
+    catch(int){
+        cout<<"catched"<<endl;
+    }
 }
