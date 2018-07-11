@@ -166,4 +166,110 @@
 
 ```
 
-## 
+## 常用的实现 隐式类类型转换 的方式
+
+```shell
+    隐式类类型转换:
+    
+        (1) 使用单参数的构造函数 或 N个参数中有N-1个是默认参数的构造函数，如
+                class A
+                {
+                    public：
+                          A(stirng s);
+                          A(string s,int a = 0);
+                };
+                
+                A A_object = "str" ; // 正确  直接将string类型隐式转化为　类A
+                A B_object("str") ;  // 正确　标准的构造函数
+                
+        (2) 使用operator目标类型() const
+                class Rational {
+                public:
+                  ...
+                  operator double()const;                  // 转换Rational类成double类型
+                };
+            
+    优点:
+        代码简单
+        
+    缺点:
+        容易隐藏类型不匹配的错误；
+        代码更难阅读,不易维护
+        
+    规范:
+        可接收单个参数的构造函数必需要加上explicit标记，禁止隐式类类型转换,例如:
+            class A
+            {
+                public：
+                       explicit A(stirng s);
+                       explicit A(string s,int a = 0);
+            };
+            
+             A A_object = "str" ; //错误　编译不通过，不允许隐式的转换
+            
+
+```
+
+## new 和 malloc的区别
+
+```shell
+    1.区别
+        (1) new 不仅分配了内存空间, 而且调用了构造函数. 而 malloc 仅仅分配了内存空间
+        (2) 返回类型安全性
+                new操作符内存分配成功时,返回的是对象类型的指针,无须进行类型转换，故new是符合类型安全性的操作符
+                malloc内存分配成功则是返回void * ,需要通过强制类型转换将void*指针转换成我们需要的类型
+                
+        (3) 内存分配失败时的返回值
+                new内存分配失败时,会抛出bac_alloc异常,它不会返回NULL；
+                malloc分配内存失败时返回NULL.
+                
+                    try
+                    {
+                        int *a = new int();
+                    }
+                    catch (bad_alloc)
+                    {
+                        ...
+                    }
+                    
+        (4) operator new /operator delete的实现可以基于malloc，而malloc的实现不可以去调用new
+        
+    2. 三种new
+    
+        1.最常用的 new 表达式
+            A *obj = new A();  //使用 new 创建对象　new 表达式
+            
+            使用 new 表达式会做以下2件事：
+                (1) 调用函数 operator new 来分配空间
+                (2) 调用 placement new 来进行构造函数
+                
+        2. 全局 operator new
+                只是用来分配内存空间
+                
+        3. placement new
+            placement new 的功能就是 在一个 已经分配好的空间上，调用构造函数，创建一个类。
+            已经分配好的空间” 可以是任何的空间，比如说 可以是栈上的空间！
+            
+            例如:
+                class A {...}  //声明一个 类 A
+                   
+                void *buf =  malloc(sizeof(A));   //简单地分配空间。
+                A *ojb = new (buf)A();    // 在分配的空间上调用构造函数
+            
+```
+
+## 函数指针 和　指针函数
+
+```shell
+    1.函数指针
+        函数指针：指向函数的指针变量
+        作用:
+            (1) 可以用来调用函数
+            (2) 做函数的参数
+            
+                int(*func)(int a, int b);
+                
+    2.指针函数
+        指针函数本质上是一个函数,是指函数的返回值为指针 的函数
+            int* func(int x,int y);
+```

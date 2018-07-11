@@ -160,3 +160,39 @@
                     }; 
             
 ```
+
+## 增减元素对迭代器的影响
+
+```shell
+    1.对于连续内存容器
+        如vector、deque等, 增减元素均会使得当前之后的所有迭代器失效.因此，以删除元素为例：
+        由于erase()总是指向被删除元素的下一个元素的有效迭代器,因此,
+        可以利用该连续内存容器的成员erase()函数的返回值。
+        常见的编程写法为：
+        
+            for(auto iter = myvec.begin(); iter != myvec.end())  //另外注意这里用 "!=" 而非 "<"
+            {
+                if(delete iter) //达到删除 iter的条件
+                    iter = myvec.erase(iter);
+                else 
+                    ++iter;
+            }
+            
+        注意:
+            当增加元素后整个vector的大小超过了预设,这时会导致vector重新分分配内存,效率极低.
+            因此习惯的编程方法为：
+            在声明了一个vector后,立即调用reserve函数,令vector可以动态扩容.
+            通常vector是按照之前大小的2倍来增长的
+            
+    2.对于非连续内存容器
+        如set、map等.增减元素只会使得当前迭代器无效,仍以删除元素为例,由于删除元素后,erase()返回的迭代器将是无效的迭代器。
+        因此，需要在调用erase()之前，就使得迭代器指向删除元素的下一个元素。常见的编程写法为：
+        
+            for(auto iter = myset.begin(); iter != myset.end())  //另外注意这里用 "!=" 而非 "<"
+                {
+                    if(delete iter)
+                        myset.erase(iter++);  //使用一个后置自增就OK了
+                    else 
+                        ++iter;
+                }
+```

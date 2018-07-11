@@ -14,41 +14,27 @@
 using namespace std;
 using namespace std::placeholders;
 
-
-class C{
-    int m;
+class Fraction
+{
 public:
-    C(){cout<<"in C constructor"<<endl;}
-    ~C(){cout<<"in C destructor"<<endl;}
+    //non-explicit-one-argument ctor
+    //one-argument:只要一个实参就够了，给两个也可以。two-parameter
+    //non-explicit:没有添加explicit修饰
+    //可以把int隐式的转换为Fraction
+    explicit Fraction(int num, int den = 1)//这种默认是符合数学上的规定
+            :m_numerator(num), m_denominator(den) {}
+    Fraction operator+(const Fraction& f) {
+        return Fraction(1,2);
+    }
+
+
+private:
+    int m_numerator;	//分子
+    int m_denominator;	//分母
 };
 
-class A{
-public:
-    A(){cout<<"in A constructor"<<endl;}
-    ~A(){cout<<"in A destructor"<<endl;}
-};
-
-class B:public A{
-public:
-    C c;
-    char* resource;
-
-    B(){
-        resource=new char[100];
-        cout<<"in B constructor"<<endl;
-        throw -1;
-    }
-    ~B(){
-        cout<<"in B destructor"<<endl;
-        delete[]  resource;
-    }
-};
-
-int main(){
-    try{
-        B b;
-    }
-    catch(int){
-        cout<<"catched"<<endl;
-    }
+int main()
+{
+    Fraction f = 3;
 }
+
