@@ -113,9 +113,46 @@
                         vector<int> v = {1, 2, 3, 4};
                         auto s = sum(v.begin(), v.end()); //s = 10
                         
+    6.函数模板重载
+        重载: 函数名一样, 对应的形参类型以及个数不相同
+        函数模板, 普通函数　它们可以共存(它们可以定义同一个函数名)
+        具体实际的调用方式,顺序如下:
+            1.普通函数 -> 2.殊模板(限定了T的类型的,例如　T为指针,引用,容器等) -> 3.普通模板(对T没有任何限制的)
+            
+            template<typename T>
+            void func(T t) { //通用模板函数
+                cout << "In generic version template " << t << endl;
+            }
+            
+            template<typename T>
+            void func(T *t) { //指针版本
+                cout << "In pointer version template "<< *t << endl;
+            }
+            
+            void func(string* s) { //普通函数
+                cout << "In normal function " << *s << endl;
+            }
+            
+            int i = 10;
+            func(i); //调用通用版本，其他函数或者无法实例化或者不匹配
+            func(&i); //调用指针版本，通用版本虽然也可以用，但是编译器选择最特殊的版本
+            string s = "abc";
+            func(&s); //调用普通函数，通用版本和特殊版本虽然也都可以用，但是编译器选择最特化的版本
+            func<>(&s); //调用指针版本，通过<>告诉编译器我们需要用template而不是普通函数
+            
                             
                             
-                            
+    7.模板函数特化
+        有时 通用的函数模板 不能解决个别类型的问题,我们必须对此进行定制，这就是函数模板的特化。
+        函数模板的特化必须把所有的模版参数全部指定.
+        
+            template<>
+            void func(int i) {
+                cout << "In special version for int "<< i << endl; 
+            }
+            
+            int i = 10;
+            func(i); //调用特化版本
                             
                         
             
