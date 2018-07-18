@@ -829,3 +829,381 @@
                          };
 
 ```
+
+## RTTI 机制
+
+```shell
+    1.简介
+        (1) RTTI(Run-time Type Identification),代表运行时类型识别,C++引入这个机制是为了让程序在运行时能根据
+            基类的指针或引用来获得该指针或引用所指的对象的实际类型.
+            
+        (2) C++通过以下的两个操作提供RTTI：
+                A. typeid运算符,该运算符返回其表达式或类型名的实际类型(比如使用typeid(a).name()就能知道变量a是什么类型的)
+                B. dynamic_cast运算符,该运算符将 基类的指针或引用 安全地转换为派生类类型的指针或引用
+                
+    2.typeid 运算符
+        typeid　运算符后接一个类型名(或则变量名)或一个表达式, 该运算符返回一个类型为std::type_info的
+        对象的const引用,class type_info　的定义大概是:
+            
+                class type_info
+                {
+                    public:
+                        virtual ~type_info();
+                        bool operator==(const type_info&)const;
+                        bool operator!=(const type_info&)const;
+                        bool before(const type_info&)const;
+                        const char* name()const;
+                    private:
+                        type_info(const type_info&);
+                        type_info& operator=(const type_info&);
+                       
+                        // data members 
+                }
+                以上的　构造函数和赋值运算符　定义为私有的, 可以看出禁止用户对type_info对象的定义和复制操作，
+                用户只能通过指向type_info的对象的指针或引用来使用该类(而获取 type_info的方法就是通过 typeid运算符)
+                
+        (1) typeid识别 静态类型
+                静态类型在程序的运行过程中并不会改变,所以并不需要在程序运行时计算类型,
+                在编译时就能根据操作数的静态类型,推导出其类型信息,如下的代码片断,
+                typeid中的操作数均为静态类型：
+                    class X  {  ...... // 具有virtual函数 }; 
+                    class XX : public X  { ...... // 具有virtual函数}; 
+                    class Y  { ...... // 没有virtual函数}; 
+                     
+                    int main()
+                    {
+                        int n = 0;
+                        XX xx;
+                        Y y;
+                        Y *py = &y;
+                     
+                        // int和XX都是类型名
+                        cout << typeid(int).name() << endl;
+                        cout << typeid(XX).name() << endl;
+                        // n为基本变量
+                        cout << typeid(n).name() << endl;
+                        
+                        // xx所属的类虽然存在virtual,但是xx为一个具体的对象
+                        cout << typeid(xx).name() << endl;
+                        // py为一个指针，属于基本类型
+                        cout << typeid(py).name() << endl;
+                        // py指向的Y的对象，但是类Y不存在virtual函数
+                        cout << typeid(*py).name() << endl;
+                        return 0;
+                    }
+                    
+        (2) typeid识别 多态类型
+                多态的类型是可以在运行过程中被改变的,例如,一个基类的指针,在程序运行的过程中,
+                它可以指向一个基类对象,也可以指向该基类的派生类的对象,
+                而 typeid运算符 需要在运行过程中识别出该基类指针所指向的对象的实际类型
+                
+                情况一:
+                    class A
+                    {
+                    public:
+                        /*******没有定义虚函数**********/
+                         void Print() { cout<<"This is class A."<<endl; }
+                    };
+                    
+                    class B : public A
+                    {
+                    public:
+                         void Print() { cout<<"This is class B."<<endl; }
+                    };
+                    
+                     A *pA = new B();
+                     cout<<typeid(pA).name()<<endl; // 这边输出的是　class A *
+                     cout<<typeid(*pA).name()<<endl; // 这边输出的是　class A
+                     
+                     RTTI机制　导致当基类不存在虚函数时, typeid(*pA) 识别的静态类型
+                     
+                情况二:
+                    class A
+                    {
+                    public:
+                        /********定义为虚函数**********/
+                         virtual void Print() { cout<<"This is class A."<<endl; }
+                    };
+                    
+                    class B : public A
+                    {
+                    public:
+                         void Print() { cout<<"This is class B."<<endl; }
+                    };
+                    
+                    当类中存在虚函数时, typeid 识别是　动态类型
+                    
+                情况三: == 运算符用法
+                        class A
+                        {
+                        public:
+                             virtual void Print() { cout<<"This is class A."<<endl; }
+                        };
+                        
+                        class B : public A
+                        {
+                        public:
+                             void Print() { cout<<"This is class B."<<endl; }
+                        };
+                        
+                        class C : public A
+                        {
+                        public:
+                             void Print() { cout<<"This is class C."<<endl; }
+                        };
+                        
+                        void Handle(A *a)
+                        {
+                             if (typeid(*a) == typeid(A))
+                             {
+                                  cout<<"I am a A truly."<<endl;
+                             }
+                             else if (typeid(*a) == typeid(B))
+                             {
+                                  cout<<"I am a B truly."<<endl;
+                             }
+                             else if (typeid(*a) == typeid(C))
+                             {
+                                  cout<<"I am a C truly."<<endl;
+                             }
+                             else
+                             {
+                                  cout<<"I am alone."<<endl;
+                             }
+                        }
+                        
+                        int main()
+                        {
+                             A *pA = new B();
+                             Handle(pA);  //输出　I am a B truly.
+                             delete pA;
+                             pA = new C();
+                             Handle(pA);　//输出 I am a C truly.
+                             delete pA;
+                             return 0;
+                        }
+                        
+                        结果:
+                            I am a B truly.
+                            I am a C truly.
+                
+        注意:
+            在C++中即使一个类不具有多态的性质(即使该类是派生类,但基类中没有定义虚函数virtual)
+            ,仍然允许把一个派生类的指针赋值给一个基类的指针,所以这个错误比较隐晦. 多态的含义是一个基类的指针
+            指向了派生类,　并且该指针调用了虚函数virtual,　在运行时确定调用哪个派生类的虚函数
+            
+    3.dynamic_cast 运算符
+        (1) 把一个基类类型的指针或引用转换 至 继承架构的末端(某一个派生类类型的指针或引用) 被称为向下转型(downcast).
+            dynamic_cast运算符的作用是安全而有效地进行向下转型.
+            
+            把一个派生类的指针或引用 转换成 其基类的指针或引用总是安全的,因为通过分析对象的内存布局可以知道,
+            派生类的对象中必然存在基类的子对象,所以通过 基类的指针或引用 对派生类对象进行的 所有基类的操作 都是合法和安全的.
+            而向下转型有潜在的危险性,因为基类的指针可以指向 基类对象或其任何派生类的对象,
+            而该对象并不一定是向下转型的类型的对象. 所以向下转型遏制了类型系统的作用,
+            转换后对指针或引用的使用可能会引发错误的解释或腐蚀程序内存等错误(错误得引用了派生类特有的方法)
+            
+            要想 dynamic_cast 转化成功, 则必须要 类中要有虚函数（转换信息都在虚函数表里面）,
+            由于运行时类型检查需要运行时类型信息，而这个信息存储在类的虚函数表,只有定义了虚函数的类才有虚函数表,
+            没有定义虚函数的类是没有虚函数表的.
+                        
+         (2) 
+                class X
+                {
+                    public:
+                        X()
+                        {
+                            mX = 101;
+                        }
+                        virtual ~X()
+                        {
+                        }
+                    private:
+                        int mX;
+                };
+                
+                class XX : public X
+                {
+                    public:
+                        XX():
+                                X()
+                        {
+                            mXX = 1001;
+                        }
+                        virtual ~XX()
+                        {
+                        }
+                    private:
+                        int mXX;
+                };
+                
+                class YX : public X
+                {
+                    public:
+                        YX()
+                        {
+                            mYX = 1002;
+                        }
+                        virtual ~YX()
+                        {
+                        }
+                    private:
+                        int mYX;
+                };
+                
+                int main()
+                {
+                    X x;
+                    XX xx;
+                    YX yx;
+                
+                    X *px = &xx;
+                    cout << px << endl;  // 输出结果: 0x7fff58268170
+                
+                    /*
+                     * 向下转型成功, 因为px指向的对象确实为XX的对象
+                     */
+                    XX *pxx = dynamic_cast<XX*>(px); // 转换1
+                    cout << pxx << endl; // 输出结果: 0x7fff58268170
+                
+                    /*
+                     * 向下转型失败, pyx被赋值为NULL,
+                     * 因为px指向的对象并不是一个YX对象
+                     */
+                    YX *pyx = dynamic_cast<YX*>(px); // 转换2
+                    cout << pyx << endl;  // 输出结果:0
+                
+                    /*
+                     * C风格的类型转换没有安全型, 继续通过指针使用该对象必然会导致错误
+                     */
+                    pyx = (YX*)px; // 转换3
+                    cout << pyx << endl;  
+                
+                    /*
+                     * C++静态类型转换没有安全型, 继续通过指针使用该对象必然会导致错误
+                     */                    
+                    pyx = static_cast<YX*>(px); // 转换4
+                    cout << pyx << endl;
+                    
+                    /*
+                     * 将本身是基类的地址 转换为 派生类指针是不成功的
+                     */                         
+                    XX *pxx_second = dynamic_cast<XX*>(&x); // 转换5
+                    cout << pxx_second << endl;
+
+                
+                    return 0;
+                
+                }
+                
+                只有dynamic_case才能实现安全的向下转型
+                实现原理:
+                    1.计算指针或引用变量所指的对象的虚函数表的type_info信息,如下：
+                        *(type_info*)px->vptr[-1]
+                    2.静态推导向下转型的目标类型的type_info信息,即获取类XX的type_info信息
+                    3.比较1和2中获取到的type_info信息,若2中的类型信息与1中的类型信息相等或是其基类类型,
+                      则返回相应的对象或子对象的地址,否则返回NULL.
+
+        
+        
+```
+
+## 类型转换机制
+
+```shell
+    1.基本概念
+        (1) 上行转换：子类指针或引用 转换成 基类 ——安全
+        (2) 与 c-like 转换的区别
+                C-Like转换没有static_cast, dynamic_cast分别提供的编译时类型检测和运行时类型检测
+    
+    1.static_cast
+        (1) 静态类型转换,用于基本的数据类型转换(char，int等等),及指针之间的转换
+        (2) 
+            A 代表基类, B 继承于 A, C 继承于 A
+            
+            objB = static_cast<B>(objA);       //错误 不能用static_cast进行对象向下转换
+            objB=objA;                         //错误 不能将基类对象转化为派生类
+            
+            pObjA = static_cast<A*>(pObjB);    //正确 可以将基类指针指向子类
+            pObjB = static_cast<B*>(pObjA);    //正确(但不推荐) 强制转换 OK基类到子类,只不过不安全
+            //pObjB->f();                        //right 打印A 因为pObjA所指向的空间中虚函数表f没有被覆盖
+        
+            pObjC = static_cast<C*>(pObjB);    //错误 继承于同一基类的派生指针之间不能相互转换
+            
+            int n = 6;
+            double *d = static_cast<double*>(&n)   //错误: 无关类型指针转换，编译错误
+            
+            void *p=pObjC;                       //正确 C类型被强制转换为void*类型
+            pObjD = static_cast<D*>(p);          //正确 void*转换为D类型
+            pObjD->f();                          //打印C 因为pObjC所指向的空间中虚函数表中的f就是C::f
+            
+        (3) 无条件转换,静态类型转换.用于：
+                A.基类和子类之间转换
+                    其中子类指针转换成父类指针是安全的;
+                    但父类指针转换成子类指针是不安全的。(基类和子类之间的动态类型转换建议用dynamic_cast)
+            
+                B.基本数据类型转换
+                    enum, struct, int, char, float等。
+                    static_cast不能进行无关类型(如非基类和子类)指针之间的转换。
+            
+                C. 可以把空指针转换成目标类型的指针
+            
+                D. static_cast不能去掉类型的const、volitale属性(用const_cast)。
+                
+        (4) 注意:
+                static_cast字面意思是静态转换,编译期间就能判断是否可以转换成功,但是无法识别兄弟类指针之间的转换,
+                而dynamic_cast是运行时转换,可以编译通过,但是可以与NULL指针的比较来判断是否转换成功！
+                
+    2.const_cast
+        (1) 去掉类型的const或volatile属性, const_cast<类型>中类型必须是指针、引用或指向对象成员的指针
+        (2) 使用背景
+                在C++当中一直提倡将常量声明为const, 这样一旦常量变得多了起来,
+                在与其他软件组件或者第三方库进行衔接的时候就难免会碰到需要cast const属性的问题
+                
+        (3) 疑问
+        
+            const A ra;
+            //ra.i = 10;                     //直接修改const类型，编译错误
+            A &rb = const_cast<A&>(ra);
+            rb.i = 10;
+            printf("ra.i[%d], rb.i[%d]\n", ra.i, rb.i);  // 结果: ra.i[10], rb.i[10]
+            printf("ra_addr[%p]  rb_addr[%p] \n",&ra,&rb);  // 结果 ra_addr[0x7ffce21906a0]  rb_addr[0x7ffce21906a0] 
+            
+            
+            const int a=1;
+            int &j=const_cast<int&>(a);
+            j=3;
+            printf("a_addr[%p]  j_addr[%p]\n", &a, &j);  // 结果: a_addr[0x7ffec12030dc]  j_addr[0x7ffec12030dc]
+            printf("a[%d] j[%d]\n", a, j);  //结果: a[1] j[3]
+            
+            
+    3.reinterpret_cast
+        (1) 用法:
+                 reinpreter_cast<type-id> (expression)
+        (2) 
+           A. type-id必须是一个指针、引用、算术类型、函数指针或者成员指针。
+           B. 它可以把一个指针转换成一个整数,也可以把一个整数转换成一个指针,但不能将非32bit的实例转成指针
+           C. 最普通的用途就是在函数指针类型之间进行转换
+           D. 很难保证移植性
+           
+        (3) 
+            int doSomething(){return 0;};
+            
+            //FuncPtr是一个指向函数的指针，该函数没有参数，返回值类型为 void
+            typedef void(*FuncPtr)();
+            
+            //10个FuncPtrs指针的数组 让我们假设你希望把一个指向下面函数的指针存入funcPtrArray数组：
+            FuncPtr funcPtrArray[10];
+            
+            //编译错误！类型不匹配(doSomething 是一个返回值为int, 但是形参为NULL)，reinterpret_cast可以让编译器以你的方法去看待它们：funcPtrArray
+            funcPtrArray[0] = &doSomething;
+            
+            //不同函数指针类型之间进行转换
+            funcPtrArray[0] = reinterpret_cast<FuncPtr>(&doSomething);
+            
+    4.总结
+        (1) 去const属性用const_cast；
+        (2) 基本类型转换用static_cast；
+        (3) 多态类之间的类型转换用daynamic_cast；
+        (4) 不同类型的指针类型转换用reinterpret_cast
+         
+```
