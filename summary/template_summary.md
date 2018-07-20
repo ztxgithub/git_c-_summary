@@ -52,7 +52,7 @@
         Printer p;
         p.print<const char*>("abc"); //打印abc
         
-        A. 成员函数模板不能是虚函数(virtual)
+        A. 成员函数模板 不能是虚函数(virtual)
                 编译器在处理 类的定义的时候 要确定确定这个类的虚函数表的大小, 如果允许有类的虚成员模板函数,
                 那么就必须要求编译器提前知道程序中 所有对该类的该 虚成员模板函数 的调用，而这是不可行的
         B. 模板类中可以使用虚函数
@@ -153,17 +153,222 @@
             
             int i = 10;
             func(i); //调用特化版本
+                             
+```
+
+## template class 
+
+```shell
+    1.
+        (1) Template Class声明：
+        
+                template <typename T> class ClassA;
+                
+        (2) Template Class定义：
+        
+                template <typename T> class ClassA
+                {
+                    T member;
+                };
+                
+            在定义完模板参数T之后,便可以定义你所需要的类. 不过在定义类的时候,除了一般类可以使用的类型(int,char)外,
+            你还可以使用模板参数中使用的类型 T.可以说，这个 T是模板的精髓,因为你可以通过指定模板实参,
+            将T替换成你所需要的类型.
+            通过模板参数替换类型,可以获得很多形式相同的新类型,有效减少了代码量。这种用法,
+            我们称之为“泛型”(Generic Programming),它最常见的应用,即是STL中的容器模板类.
+            
+        (3) 模块的使用
+                A.
+                    模块变量定义的过程可以分成两步来看：
+                        第一步：vector<int>将int绑定到模板类vector上,获得了一个“普通的类vector<int>”；
+                        第二步通过“vector<int>””定义了一个变量.
+                         
+                        与“普通的类”不同，模板类是不能直接用来定义变量的。例如
+                                vector unknownVector; // 错误示例
+                B.            
+                    我们把通过 类型绑定 将模板类 变成“普通的类”的过程,称之为模板实例化(Template Instantiate)
+                    实例化的语法是：
+                            模板名 < 模板实参1 [，模板实参2，...] >
+                            template <typename T0, typename T1>
+                             class ClassB
+                            {
+                                // Class body ...
+                            };
                             
+                            模板实例化:
+                                ClassB<int, float>
+                                
+        (4)  模板类的成员函数定义
+                A.方法一(常用,推荐使用)
+                    定义　模板类的成员函数　通常都是以内联的方式实现
+                        template <typename T>
+                        class vector
+                        {
+                            public:
+                                /*
+                                 * 实现成员函数也在　类的定义　中进行, 以内联的方式
+                                 */
+                                
+                                void clear()
+                                {
+                                    // Function body
+                                }
+                                
+                            private:
+                                T* elements;
+                        };
                         
-            
-                    
-                    
-            
+                B. 方法二　
+                     定义实现部分放在类型之外
+                        template <typename T>
+                        class vector
+                        {
+                            public:
+                                void clear(); // 注意这里只有声明
+                            private:
+                                T* elements;
+                        };
+                        
+                        // 模板类成员函数的实现
+                        template <typename T>
+                        void vector<T>::clear()		// 函数的实现放在这里
+                        {
+                        	// Function body
+                        }
+                        
+                        其中在成员函数实现的时候,必须要提供模板参数,类型名是用　vector<T>　成员函数的偏特化
 
-        
-        
+```
 
+## 整型也可是Template参数
+
+```shell
+    1.
+        整型作为模板参数,其中这里的整型比较宽泛, 包括基本类型(int ,char,bool),同时也包括指针, 但是不能是 float
+            template <int V> class TemplateWithValue;
+            template <void *ptr> class TemplateWithValue;
         
+        类型作为模板参数
+            template <typename T> class TemplateWithType;
+            
+    2. 按照C++ Template最初的想法,模板不就是为了提供一个类型安全、易于调试的宏吗？有类型就够了,
+       为什么要引入整型参数呢？考虑宏，它除了代码替换，还有一个作用是作为常数出现.
+       所以整型模板参数最基本的用途,也是定义一个常数(很关键)
+       例如这段代码的作用：
+       
+            template <typename T, int Size> 
+            struct Array
+            {
+                T data[Size];
+            };
+            
+            Array<int, 16> arr;
+            
+            便相当于下面这段代码：
+            
+            class IntArrayWithSize16
+            {
+                int data[16]; // int 替换了 T, 16 替换了 Size
+            };
+            
+            IntArrayWithSize16 arr;
+            
+    3.注意
+        模板的匹配是在编译的时候完成的,所以实例化模板的时候所使用的参数,也必须要在编译期就能确定
+        
+        template <int i> class A {};
+        
+        void foo()
+        {
+            int x = 3;
+            A<5> a; // 正确！
+            
+            /* 因为x不是一个编译期常量,所以 A<x> 就会告诉你,
+             * x是一个局部变量，不能作为一个模板参数出现
+             */
+            A<x> b; // error C2971: '_1_3::A' : template parameter 'i' : 'x' : a local variable cannot be used as a non-type argument
+        }
+```
+
+# 模板元编程
+
+```shell
+    1.
+    我们以数据结构举例。在程序里，你需要一些堆栈。这个堆栈的元素可能是整数、浮点或者别的什么类型。
+    一份整型堆栈的代码可能是：
+        class StackInt
+        {
+            public:
+                void push(Int v);
+                Int pop();
+                Int Find(Int x)
+                {
+                    for(Int i = 1; i <= size; )
+                    {
+                        if(data[i] == x) { return i; }
+                    }
+                }
+            // ... 其他代码 ...
+        };
+        
+    如果你要支持浮点了，那么你只能将代码再次拷贝出来，并作如下修改：
     
+    class StackFloat
+    {
+    public:
+        void push(Float v);
+        Float pop();
+        Int Find(Float x)
+        {
+            for(Int i = 1; i <= size; )
+            {
+                if(data[i] == x) { return i; }
+            }
+        }
+        // ... 其他代码 ...
+    };
+    
+    当然也许你觉得这样做能充分体会代码行数增长的成就感。但是有一天，你突然发现：呀，Find 函数实现有问题了。
+    怎么办？这个时候也许你只有两份这样的代码，那好说，一一去修正就好了。如果你有十个呢？二十个？五十个？
+    时间一长，你就厌倦了这样的生活。你觉得每个堆栈都差不多，但是又有点不一样。
+    
+    于是便诞生了新的技术,来消解我们的烦恼.
+    
+    这个技术的名字,并不叫“模板”，而是叫“元编程”.
+    元(meta) 无论在中文还是英文里,都是个很“抽象(abstract)”的词.因为它的本意就是“抽象”.元编程,
+    也可以说就是“编程的抽象”.用更好理解的说法,元编程意味着你撰写一段程序A,程序A会运行后生成另外一个程序B,
+    程序B才是真正实现功能的程序.那么这个时候程序A可以称作程序B的元程序，撰写程序A的过程，就称之为“元编程”
+    
+    找出程序之间的相似性,进行“元编程”.而在C++中,元编程的手段,可以是宏,也可以是模板
+    template<typtname T>
+       class StackFloat
+       {
+       public:
+           void push(T v);
+           T pop();
+           Int Find(T x)
+           {
+               for(Int i = 1; i <= size; )
+               {
+                   if(data[i] == x) { return i; }
+               }
+           }typeid 
+           // ... 其他代码 ...
+       };
+       
+    typedef Stack<int>   StackInt;
+    typedef Stack<float> StackFloat;
+    
+    通过模板,我们可以将形形色色的堆栈代码分为两个部分,一个部分是不变的接口,以及近乎相同的实现；
+    另外一部分是元素的类型,它们是需要变化的。因此同函数模板类似，需要变化的部分，由模板参数来反应；
+    不变的部分，则是模板内的代码。可以看出使用模板的代码，要比不使用模板的代码简洁许多
+    
+```
+
+## 类模板的特化与偏特化
+
+```shell
+    1.根据类型执行不同的代码
+        
 ```
 
