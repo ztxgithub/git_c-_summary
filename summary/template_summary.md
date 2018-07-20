@@ -422,68 +422,177 @@
         特化(specialization)是根据一个或多个特殊的整数或类型,给出模板实例化时的一个指定内容, 特化是在编译期间执行
         
         
-        如果要实现类模板中　根据不同的数据类型调用不用的代码业务逻辑
+       A. 如果要实现类模板中　根据不同的数据类型调用不用的代码业务逻辑
          
-         float f_a, f_b, f_c;
-         f_c = AddFloatOrMulInt<float>::Do(f_a, f_b); //实现的是　f_c = f_a + f_b
-         
-         int i_a, i_b, i_c;
-         i_c = AddFloatOrMulInt<int>::Do(i_a, i_b); //实现的是　i_c = i_a * i_b
-         
-         // 首先，要写出模板的一般形式（原型）
-         template<typename T>
-         class AddFloatOrMulInt
-         {
-                static T Do(T a, T b)
+             float f_a, f_b, f_c;
+             f_c = AddFloatOrMulInt<float>::Do(f_a, f_b); //实现的是　f_c = f_a + f_b
+             
+             int i_a, i_b, i_c;
+             i_c = AddFloatOrMulInt<int>::Do(i_a, i_b); //实现的是　i_c = i_a * i_b
+             
+             // 首先，要写出模板的一般形式（原型）
+             template<typename T>
+             class AddFloatOrMulInt
+             {
+                    static T Do(T a, T b)
+                    {
+                        // 在这个例子里面一般形式里面是什么内容不重要，因为用不上
+                        // 这里就随便给个0吧。
+                        return T(0);
+                    }
+             };
+             
+             // 其次，我们要指定T是int时候的代码，这就是特化：
+             template <> class AddFloatOrMulInt<int>
+             {
+             public:
+                 static int Do(int a, int b) // 
+                 {
+                     return a * b;
+                 }
+             };
+             
+             // 再次，我们要指定T是float时候的代码：
+             template <> class AddFloatOrMulInt<float>
+             {
+             public:
+                 static float Do(float a, float b)
+                 {
+                     return a + b;
+                 }
+             };
+             
+             
+             类模板特化的演变方式:
+             
+             // 我们这个模板的基本形式是什么？
+             template <typename T> class AddFloatOrMulInt;
+             
+             // 但是这个类，是给T是Int的时候用的，于是我们写作
+             class AddFloatOrMulInt<int>
+             // 当然，这里编译是通不过的。
+             
+             // 但是它又不是个普通类，而是类模板的一个特化（特例）。
+             // 所以前面要加模板关键字template，
+             // 以及模板参数列表
+             template </* 这里要填什么？ */> class AddFloatOrMulInt<int>;
+             
+             // 最后，模板参数列表里面填什么？因为原型的T已经被int取代了。所以这里就不能也不需要放任何额外的参数了。
+             // 所以这里放空。
+             template <> class AddFloatOrMulInt<int>
+             {
+                 // ... 针对Int的实现 ... 
+             }
+             
+       B.当模板实例化时提供的模板参数不能匹配到任何的特化形式的时候，它就会去匹配类模板的“原型”形式。
+       C. 和继承不同,类模板的“原型”和它的特化类在实现上是没有关系的,并不是在类模板中写了 ID 这个Member,
+          那所有的特化就必须要加入 ID 这个Member，或者特化就自动有了这个成员。完全没这回事
+          
+              template <typename T> class TypeToID
+              {
+              public:
+                  static int const NotID = -2;
+              };
+              
+              template <> class TypeToID<float>
+              {
+              public:
+                  static int const ID = 1;
+              };
+              
+              void PrintID()
+              {
+                  cout << "ID of float: " << TypeToID<float>::ID << endl; // Print "1"
+                  /*
+                   * 错误! TypeToID<float>使用的特化的类，这个类的实现没有NotID这个成员。
+                   */
+                  cout << "NotID of float: " << TypeToID<float>::NotID << endl; 
+          　　　　 /*
+                   * 错误!  TypeToID<double>是由模板类实例化出来的,它只有NotID，没有ID这个成员。
+                   */
+                  cout << "ID of double: " << TypeToID<double>::ID << endl; //
+              }
+              
+          类模板和类模板的特化的作用,仅仅是指导编译器选择哪个编译,但是特化之间、特化和它原型的类模板之间,是分别独立实现的.
+          所以如果多个特化、或者特化和对应的类模板有着类似的内容，很不好意思，你得写上若干遍
+          
+       D. 对所有的指针类型特化
+       
+                //模板原型
+                template <typename T> class TypeToID
                 {
-                    // 在这个例子里面一般形式里面是什么内容不重要，因为用不上
-                    // 这里就随便给个0吧。
-                    return T(0);
-                }
-         };
-         
-         // 其次，我们要指定T是int时候的代码，这就是特化：
-         template <> class AddFloatOrMulInt<int>
-         {
-         public:
-             static int Do(int a, int b) // 
-             {
-                 return a * b;
-             }
-         };
-         
-         // 再次，我们要指定T是float时候的代码：
-         template <> class AddFloatOrMulInt<float>
-         {
-         public:
-             static float Do(float a, float b)
-             {
-                 return a + b;
-             }
-         };
-         
-         
-         类模板特化的演变方式:
-         
-         // 我们这个模板的基本形式是什么？
-         template <typename T> class AddFloatOrMulInt;
-         
-         // 但是这个类，是给T是Int的时候用的，于是我们写作
-         class AddFloatOrMulInt<int>
-         // 当然，这里编译是通不过的。
-         
-         // 但是它又不是个普通类，而是类模板的一个特化（特例）。
-         // 所以前面要加模板关键字template，
-         // 以及模板参数列表
-         template </* 这里要填什么？ */> class AddFloatOrMulInt<int>;
-         
-         // 最后，模板参数列表里面填什么？因为原型的T已经被int取代了。所以这里就不能也不需要放任何额外的参数了。
-         // 所以这里放空。
-         template <> class AddFloatOrMulInt<int>
-         {
-             // ... 针对Int的实现 ... 
-         }
-         
+                public:
+                    static int const NotID = -2;
+                };
+                
+                // 特化 float 数据类型
+                template <> class TypeToID<float>
+                {
+                public:
+                    static int const ID = 1;
+                };
+                
+                //　特化所有类型的指针
+                template <typename T> // 嗯，需要一个T,指代“任意类型
+                class TypeToID<T*> // 我要对所有的指针类型特化，所以这里就写T*
+                {
+                public:
+                    typedef T		 SameAsT;
+                    static int const ID = 38;	// 用最高位表示它是一个指针
+                };
+                
+                //输出结果:  ID of float*: 38
+                cout << "ID of float*: " << TypeToID<float*>::ID << endl;  
+                //输出结果:  ID of int*: 38
+                cout << "ID of int*: " << TypeToID<int*>::ID << endl;    
+                //输出结果:  ID of int*: 1
+                cout << "ID of float: " << TypeToID< TypeToID<float*>::SameAsT >::ID << endl; 
+                
+       E.将指定的指针类型解引用
+            template <typename T>
+            class RemovePointer
+            {
+            };
+            
+            template <typename T>
+            class RemovePointer<T*>	 // 特化各种指针类型
+            {
+            public:
+                typedef T Result;
+            };
+            
+            void Foo()
+            {
+            　　　// 喏，用RemovePointer后，那个Result就是把float*的指针处理掉以后的结果：float啦。
+                RemovePointer<float*>::Result x = 5.0f; 
+                std::cout << x << std::endl;
+            }
         
+       F. 对　int *　提供更加特殊的特化
+                 //模板原型
+                template <typename T> class TypeToID
+                {
+                public:
+                    static int const NotID = -2;
+                };
+                template <typename T> // 嗯，需要一个T
+                class TypeToID<T*>    // 我要对所有的指针类型特化，所以这里就写T*
+                {
+                public:
+                    typedef T SameAsT;
+                    static int const ID = 0x80000000; // 用最高位表示它是一个指针
+                };
+                
+                template <> // 嗯，int* 已经是个具体的不能再具体的类型了，所以模板不需要额外的类型参数了
+                class TypeToID<int*> // 嗯，对int*的特化。在这里呢，要把int*整体看作一个类型。
+                {
+                public:
+                    static int const ID = 0x12345678; // 给一个缺心眼的ID
+                };
+                
+                void PrintID()
+                {
+                    cout << "ID of int*: " << TypeToID<int*>::ID << endl;
+                }
 ```
 
