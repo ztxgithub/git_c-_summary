@@ -369,6 +369,121 @@
 
 ```shell
     1.根据类型执行不同的代码
+            (1) 根据类型执行不同代码
+                A. 模板
+                B. 重载
+                C. 虚函数 (dynamic_cast)
+                
+            (2) 在C语言时代，也会有一些技法来达到这个目的,比如下面这个例子,
+                我们需要对两个浮点做加法， 或者对两个整数做乘法：
+                   方法一:
+                            struct Variant
+                            {
+                                union
+                                {
+                                    int x;
+                                    float y;
+                                } data;
+                                uint32 typeId;
+                            };
+                            
+                            Variant addFloatOrMulInt(Variant const* a, Variant const* b)
+                            {
+                                Variant ret;
+                                assert(a->typeId == b->typeId);
+                                if (a->typeId == TYPE_INT)
+                                {
+                                    ret.x = a->x * b->x;
+                                }
+                                else
+                                {
+                                    ret.y = a->y + b->y;
+                                }
+                                return ret;
+                            }
+                            
+                   方法二:
+                        更常见的是 void*:
+                        
+                        #define BIN_OP(type, a, op, b, result) (*(type *)(result)) = (*(type const *)(a)) op (*(type const*)(b))
+                        void doDiv(void* out, void const* data0, void const* data1, DATA_TYPE type)
+                        {
+                            if(type == TYPE_INT)
+                            {
+                                BIN_OP(int, data0, *, data1, out);
+                            }
+                            else
+                            {
+                                BIN_OP(float, data0, +, data1, out);
+                            }
+                        }
+                        
+    2.特化
+        特化(specialization)是根据一个或多个特殊的整数或类型,给出模板实例化时的一个指定内容, 特化是在编译期间执行
+        
+        
+        如果要实现类模板中　根据不同的数据类型调用不用的代码业务逻辑
+         
+         float f_a, f_b, f_c;
+         f_c = AddFloatOrMulInt<float>::Do(f_a, f_b); //实现的是　f_c = f_a + f_b
+         
+         int i_a, i_b, i_c;
+         i_c = AddFloatOrMulInt<int>::Do(i_a, i_b); //实现的是　i_c = i_a * i_b
+         
+         // 首先，要写出模板的一般形式（原型）
+         template<typename T>
+         class AddFloatOrMulInt
+         {
+                static T Do(T a, T b)
+                {
+                    // 在这个例子里面一般形式里面是什么内容不重要，因为用不上
+                    // 这里就随便给个0吧。
+                    return T(0);
+                }
+         };
+         
+         // 其次，我们要指定T是int时候的代码，这就是特化：
+         template <> class AddFloatOrMulInt<int>
+         {
+         public:
+             static int Do(int a, int b) // 
+             {
+                 return a * b;
+             }
+         };
+         
+         // 再次，我们要指定T是float时候的代码：
+         template <> class AddFloatOrMulInt<float>
+         {
+         public:
+             static float Do(float a, float b)
+             {
+                 return a + b;
+             }
+         };
+         
+         
+         类模板特化的演变方式:
+         
+         // 我们这个模板的基本形式是什么？
+         template <typename T> class AddFloatOrMulInt;
+         
+         // 但是这个类，是给T是Int的时候用的，于是我们写作
+         class AddFloatOrMulInt<int>
+         // 当然，这里编译是通不过的。
+         
+         // 但是它又不是个普通类，而是类模板的一个特化（特例）。
+         // 所以前面要加模板关键字template，
+         // 以及模板参数列表
+         template </* 这里要填什么？ */> class AddFloatOrMulInt<int>;
+         
+         // 最后，模板参数列表里面填什么？因为原型的T已经被int取代了。所以这里就不能也不需要放任何额外的参数了。
+         // 所以这里放空。
+         template <> class AddFloatOrMulInt<int>
+         {
+             // ... 针对Int的实现 ... 
+         }
+         
         
 ```
 
