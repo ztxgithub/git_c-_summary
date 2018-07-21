@@ -595,5 +595,78 @@
                 {
                     cout << "ID of int*: " << TypeToID<int*>::ID << endl;
                 }
+                
+                
+    3.名称查找
+        A. 名称解析(Name resolution)
+                (1) 模板定义中 能够出现 三类名称：
+                        (A) 模板名称、或模板实现中所定义的名称
+                                template <typename T> 
+                                struct X 
+                                {
+                                    X* anthor;  //可以定义　模板名称
+                                    X a;
+                                };
+                                
+                        (B) 和 模板参数有关 <typename T> 的名称
+                        
+                                template <typename T> 
+                                struct X 
+                                {
+                                    T t1;
+                                    T* t2;
+                                };
+                                
+                        (C) 模板定义所在的定义域内 能看到的名称
+                                struct B { int v; };
+                                 template <typename T> 
+                                    struct X 
+                                    {
+                                       B b;
+                                    };
+                                    
+                        错误定义:
+                            template <typename T> 
+                            struct X 
+                            {
+                               C c;
+                            };
+                                                                
+                                    
+        B. 在语法分析中, 如果名字查找和模板参数<typename T>有关,那么查找会延期到模板参数全都确定的时候,
+           如果(模板定义内出现的)名字和模板参数无关,那么在模板定义处,就应该找得到这个名字的声明
+           
+        C. 依赖性名称(Dependent names)
+                模板定义中的表达式和类型可能会依赖于模板参数<typename T>,并且模板参数会影响到名称查找的作用域和查找时机,
+                 如果表达式中有操作数依赖于模板参数,那么整个表达式都依赖于模板参数,
+                 名称查找延期到模板实例化时进行。并且定义时和实例化时的上下文都会参与名称查找.
+                 依赖性表达式可以分为类型依赖（类型 指模板参数的类型）或值依赖
+                 
+        D. 按照标准的意思,名称查找会在模板定义和实例化时各做一次,分别处理非依赖性名称和依赖性名称的查找.
+           这就是“两阶段名称查找”这一名词的由来
+           
+        E .实例代码分析
+                template <typename T> struct Y
+                {
+                    // X可以查找到原型；
+                    // X<T>是一个依赖性名称，模板定义阶段并不管X<T>是不是正确的。
+                    typedef X<T> ReboundType;
+                	
+                    // X可以查找到原型；
+                    // X<T>是一个依赖性名称，X<T>::MemberType也是一个依赖性名称；
+                    // 所以模板声明时也不会管X模板里面有没有MemberType这回事。
+                    typedef typename X<T>::MemberType MemberType2;
+                	
+                    // UnknownType 不是一个依赖性名称
+                    // 而且这个名字在当前作用域中不存在，所以直接报错。
+                    typedef UnknownType MemberType3;				
+                };
+                
+                其中 　typedef typename X<T>::MemberType MemberType2, 
+                加上 typename 原因:
+                    对于用户来说,这其实是一个语法噪音.也就是说,其实就算没有它,语法上也说得过去.
+                    事实上,某些情况下MSVC的确会在标准需要的时候,不用写typename.
+                    但是标准中还是规定了形如 T::MemberType 这样的qualified id 在默认情况下不是一个类型,
+                    而是解释为T的一个成员变量MemberType,只有当typename修饰之后才能作为类型出现
 ```
 
