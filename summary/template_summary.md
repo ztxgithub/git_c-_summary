@@ -369,6 +369,55 @@
 ## 类模板的特化与偏特化
 
 ```shell
+    0.简介
+        (A) 部分特化/偏特化 和 特化 相当于是模板实例化过程中的if-then-else。这使得我们根据不同类型,
+            选择不同实现的需求得以实现；
+        
+        (B) 名称查找是语义分析的一个环节,模板内书写的 变量声明、typedef、类型名称 甚至 类模板中成员函数的实现 
+            都要符合名称查找的规矩才不会出错；
+        
+        (C) C++编译器对语义的分析的原则是“大胆假设，小心求证”：
+                在能求证的地方尽量求证 —— 比如两段式名称查找的第一阶段；无法检查的地方假设你是正确的 —— 
+                比如typedef typename A<T>::MemberType _X;在模板定义时因为T不明确不会轻易判定这个语句错误
+                
+        (D) 类模板可以偏特化和全特化,而函数模板只能全特化
+         　　模板实例化时会优先匹配”模板参数”最相符的那个特化版本。
+        (E) 全特化
+                是将 模板参数<typename T1, typename T2>, 中 T1, T2 都进行具体数据类型的赋值
+                 全特化的模板参数列表应当是空的，并且应当给出”模板实参”列表
+                 
+                    // 全特化类模板
+                    template <>
+                    class A<int, double>{
+                        int data1;
+                        double data2;
+                    };
+                    
+                    // 函数模板全特化
+                    template <>
+                    int max(const int lhs, const int rhs){   
+                        return lhs > rhs ? lhs : rhs;
+                    }
+                    
+        (F) 偏特化
+                偏特化　模板参数<typename T1, typename T2>, 将部分模板参数赋予实参,同时 类模板可以进行偏特化, 而
+                函数模板不能进行偏特化
+                
+                    template <typename T1, typename T2>
+                    class A<T1, T2>
+                    {
+                        
+                    };
+                
+                    template <typename T2>
+                    class A<int, T2>{
+                        ...
+                    };
+                    
+        (G) 要理解全特化,偏特化　和　模板的实例化区别
+        (H) 在类模板实例化过程中, 先找到对应的　模板原型, 然后看看有没有对应的　特化模板
+                
+                    
     1.根据类型执行不同的代码
             (1) 根据类型执行不同代码
                 A. 模板
@@ -668,5 +717,34 @@
                     事实上,某些情况下MSVC的确会在标准需要的时候,不用写typename.
                     但是标准中还是规定了形如 T::MemberType 这样的qualified id 在默认情况下不是一个类型,
                     而是解释为T的一个成员变量MemberType,只有当typename修饰之后才能作为类型出现
+```
+
+## 偏特化
+
+```shell
+    1.偏特化与函数重载的比较
+    
+        template <typename T> struct DoWork;	      // (0) 这是原型
+        
+        template <> struct DoWork<int> {};            // (1) 这是 int 类型的特化
+        template <> struct DoWork<float> {};          // (2) 这是 float 类型的特化
+        template <typename U> struct DoWork<U*> {};   // (3) 这是指针类型的偏特化
+        
+    2.不定长的模板参数
+        (1) 模板参数也有一个和函数参数相同的特性：默认实参(Default Arguments)
+                template <typename T0, typename T1 = void> struct DoWork;
+                
+                template <typename T> struct DoWork<T> {};
+                template <>           struct DoWork<int> {};
+                template <>           struct DoWork<float> {};
+                template <>           struct DoWork<int, int> {};
+                
+                DoWork<int> i;
+                DoWork<float> f;
+                DoWork<double> d;
+                DoWork<int, int> ii;
+                
+                有参数不足，即原型中参数T1没有指定的地方，都由T1自己的默认参数void补齐
+    
 ```
 

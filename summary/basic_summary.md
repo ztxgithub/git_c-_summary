@@ -448,7 +448,7 @@
                 　例如:
                        (1):
                             Intvec v2;
-                            v2 = Intvec(10); // 正确
+                            v2 = Intvec(10); // 正确, 调用右值引用, 赋值操作符"=" 右侧只能是右值
                             
                        (2) 
                              /*
@@ -466,6 +466,45 @@
                 3.当类只定义了普通的重载赋值函数(Intvec& operator=(const Intvec& other)), 
                   赋值符 "=" 右边为右值(Intvec(33)) 和　赋值符 "=" 右边为左值时(v1)　都能被调用
 ```
+
+## 返回值优化（Return value optimization,缩写为RVO）
+
+```shell
+
+    1.概要
+        返回值优化(RVO) 是C++的一项编译优化技术,它好处是在于： 可以省略函数返回过程中 复制构造函数的多余调用,
+        解决 “C++ 中长久以来为人们所诟病的临时对象的效率问题”.
+        
+    2.过程
+        RVO MyMethod (int i)
+        {
+          RVO rvo;
+          rvo.mem_var = i;
+          return (rvo);
+        }
+        
+         RVO rvo_instance;
+         rvo_instance = MyMethod(5);
+         
+        (1) 非返回值优化
+                A. 在函数的栈中创建一个名为rvo的对象 (rvo 构造函数)
+                B. 用变量rvo来构造需要返回的临时对象　(return 的临时对象构造函数)
+                C. 函数返回结束，析构掉在函数内建立的所有对象(rvo 析构函数)
+                D. 继续表达式rvo=MyMethod(5);里的操作语句结束,临时对象析构函数
+                
+        (2) 采用返回值优化
+                编译器识别出了 return后的返回对象rvo和函数的返回对象的类型一致,就会对代码进行优化 .
+                编译器转而会将二者的直接关联在一起,意思就是,对rvo的操作就相当于直接对 临时对象的操作
+                作用是：
+                    消除函数返回时创建的临时对象
+                    
+    3.编译
+        (1) 禁用返回值优化(RVO)
+                > g++ -o rvo_test rvo_test.cc -fno-elide-constructors
+    
+
+```
+
 
 # 其他技巧
 
@@ -534,44 +573,6 @@
 
 ```
 
-## 返回值优化（Return value optimization,缩写为RVO）
-
-```shell
-
-    1.概要
-        返回值优化(RVO) 是C++的一项编译优化技术,它好处是在于： 可以省略函数返回过程中 复制构造函数的多余调用,
-        解决 “C++ 中长久以来为人们所诟病的临时对象的效率问题”.
-        
-    2.过程
-        RVO MyMethod (int i)
-        {
-          RVO rvo;
-          rvo.mem_var = i;
-          return (rvo);
-        }
-        
-         RVO rvo_instance;
-         rvo_instance = MyMethod(5);
-         
-        (1) 非返回值优化
-                A. 在函数的栈中创建一个名为rvo的对象 (rvo 构造函数)
-                B. 用变量rvo来构造需要返回的临时对象　(return 的临时对象构造函数)
-                C. 函数返回结束，析构掉在函数内建立的所有对象(rvo 析构函数)
-                D. 继续表达式rvo=MyMethod(5);里的操作语句结束,临时对象析构函数
-                
-        (2) 采用返回值优化
-                编译器识别出了 return后的返回对象rvo和函数的返回对象的类型一致,就会对代码进行优化 .
-                编译器转而会将二者的直接关联在一起,意思就是,对rvo的操作就相当于直接对 临时对象的操作
-                作用是：
-                    消除函数返回时创建的临时对象
-                    
-    3.编译
-        (1) 禁用返回值优化(RVO)
-                > g++ -o rvo_test rvo_test.cc -fno-elide-constructors
-    
-
-```
-
 # 值语义 与　引用语义
 
 ## 值语义
@@ -584,8 +585,8 @@
         标准库里的 complex<>, pair<>, vector<>, map<>, string 等等类型也都是值语义
         
     3.值语义　与　C++ 关系
-        (1) class 的 layout(内存分布) 与 C struct 一样,没有额外的开销. 定义一个“只包含一个 int 成员的 class ”的对象开销
-            和定义一个 int 一样。
+        (1) class 的 layout(内存分布) 与 C struct 一样,没有额外的开销. 
+            定义一个“只包含一个 int 成员的 class ”的对象开销 和定义一个 int 一样。
         (2) class data member(成员变量) 都默认是 uninitialized,因为函数局部的 int 是 uninitialized。
         (3) class 可以在 stack(栈) 上创建,也可以在 heap(堆上) 上创建.因为 int 可以是 stack variable。
         (4) class 的数组就是一个个 class 对象挨着,没有额外的 indirection。因为 int 数组就是这样。
