@@ -285,31 +285,93 @@
        
 ```
 
-## unique_ptr(独占使用资源)
+## unique_ptr (独占使用资源)
 
 ```shell
     1.unique_ptr是取代c++98的auto_ptr的产物,unique_ptr遵循着独占语义.在任何时间点,资源只能唯一地被一个unique_ptr占有.
+      (只能有一个智能指针对象指向某块内存)
       unique_ptr不支持复制,但是支持通过move转移内部指针
     　当unique_ptr离开作用域，所包含的资源被释放
     2.创建
-       (1) unique_ptr提供了创建数组对象的特殊方法,当指针离开作用域时，调用delete[]代替delete
+        
+        (1) unique_ptr 不像 shared_ptr 一样拥有标准库函数 make_shared 来创建一个 shared_ptr 实例。
+            要想创建一个 unique_ptr，我们需要将一个 new 操作符返回的指针传递给 unique_ptr 的构造函数
+                unique_ptr<int> up(new int(5));
+                cout << *pInt;
+        (2) unique_ptr提供了创建数组对象的特殊方法,当指针离开作用域时，调用delete[]代替delete
                 unique_ptr<int[ ]> uptr( new int[5] );
                 
     3.接口
-        unique_ptr提供一个release()的方法,释放所有权.
+    　　
+      (1) unique_ptr<T> up 
+            空的 unique_ptr，可以指向类型为T的对象，默认使用delete来释放内存
+      
+      (2) up = nullptr 
+            释放up指向的对象，将up置为空
+      
+      (3) up.release() 
+            up放弃对它所指对象的控制权，并返回保存的指针，将up置为空，不会释放内存
+      
+      (4) up.reset() 或则　
+            参数可以为 空、内置指针，先将up所指对象释放，然后重置up的值.
+            
+        unique_ptr 提供一个release()的方法,释放所有权.
         release和reset的区别在于,release仅仅释放所有权但不释放资源,reset也释放资源
+        
+        unique_ptr不允许两个独占指针指向同一个对象，在没有裸指针的情况下，
+        我们只能用release获取内存的地址，同时放弃对对象的所有权，这样就有效避免了多个独占指针同时指向一个对象。
         
     4.unique_ptr 可以实现如下功能：
         (1) 为动态申请的内存提供异常安全
         (2) 将动态申请的内存所有权传递给某函数
         (3) 从某个函数返回　动态申请内存的所有权
         (4) 在容器中保存指针
-        
-    5.
+            
+    5. unique_ptr 的特性
+       (1) 无法进行复制构造与赋值操作
+                 unique_ptr<int> ptr(new int(88));
+                 unique_ptr<int> ptr_copy(ptr) ; // 会出错, unique_ptr 无法进行拷贝构造函数　
+                 unique_ptr<int> ptr_assign = ptr; //会出错　unique_ptr 无法进行赋值操作
+                 
+       (2) 可以进行移动构造和移动赋值操作
+                A. 移动构造(在函数中作为返回值)
+                        unique_ptr<int> GetVal()
+                        {
+                            unique_ptr<int> ptr_move(new int(88 );
+                            return ptr_move;
+                        }
+                        
+                        /*
+                         * 编译器可以识别进行移动构造函数，达到指针的转移
+                         */
+                        unique_ptr<int> Ptr = GetVal();   //ok
+                        
+                B. 移动赋值操作
+                
+                        unique_ptr<int> ptr(new int(88));
+                        
+                        //这里是显式的所有权转移. 把 ptr 所指的内存转给 ptr_move ,而 ptr 不再拥有该内存
+                        unique_ptr<int> ptr_move = std:move(ptr); 
+                        
+       (3) 可做为容器元素
+                auto_ptr不可做为容器元素,而unique_ptr也同样不能"直接"做为容器元素,
+                但可以通过一点间接的手段
+                
+                unique_ptr<int> sp(new int(88));
+                
+                vector<unique_ptr<int> > vec;
+                
+                vec.push_back(std::move(sp));
+                
+                //vec.push_back( sp ); 这样不行,会报错的.
+ 
+                //cout<<*sp<<endl;但这个也同样出错,说明sp添加到容器中之后,它自身报废了.
+                
+    6.
             unique_ptr<Test> ptest(new Test("123"));
             unique_ptr<Test> ptest2(new Test("456"));
             ptest->print();
-            ptest2 = std::move(ptest);//不能直接ptest2 = ptest
+            ptest2 = std::move(ptest);//不能直接ptest2 = ptest, unique_ptr指针 无法进行赋值操作
             if(ptest == NULL)cout<<"ptest = NULL\n";
             Test* p = ptest2.release();
             p->print();
@@ -323,6 +385,40 @@
             使用函数的返回值赋值时,可以直接使用=, 这里使用c++11 的移动语义特性。
             另外把它当做参数传递给函数时,传实参时也要使用std::move,比如foo(std::move(ptest)).
             它还增加了一个成员函数swap用于交换两个智能指针的值
+            
+            //创建一个指向int的空指针
+            std::unique_ptr<int> fPtr1;
+            std::unique_ptr<int> fPtr2(new int(4));
+            auto fPtr3 = std::make_unique<int>();
+            
+            //fPtr2释放指向对象的所有权，并且被置为nullptr
+            std::cout << "fPtr2 release before:" << fPtr2.get() << std::endl;
+            int *pF = fPtr2.release();
+            std::cout << "fPtr2 release before:" << fPtr2.get() << " and pF value:" << *pF << std::endl;
+            结果:
+                fPtr2 release before:00EFB120
+                fPtr2 release before:00000000 and pF value:4
+            
+            //所有权转移，转移后fPtr3变为空指针
+            std::cout << "move before fPtr1 address:" << fPtr1.get() << " fPtr3 address:" << fPtr3.get() << std::endl;
+            fPtr1 = std::move(fPtr3);
+            std::cout << "move after  fPtr1 address:" << fPtr1.get() << " fPtr3 address:" << fPtr3.get() << std::endl;
+            结果:
+                　move before fPtr1 address:00000000 fPtr3 address:00EFEC60
+                　move after fPtr1 address:00EFEC60 fPtr3 address:00000000
+            
+            std::cout << "move before fPtr1 address:" << fPtr1.get() << std::endl;
+            fPtr1.reset();
+            std::cout << "move after  fPtr1 address:" << fPtr1.get() << std::endl;
+            结果:
+                move before fPtr1 address:00EFEC60
+                move after fPtr1 address:00000000
+                
+    7. 总结
+            unique_ptr和auto_ptr真的非常类似.其实你可以这样简单的理解,auto_ptr是可以说你随便赋值,
+            但赋值完了之后原来的对象就不知不觉的报废.搞得你莫名其妙.而unique就干脆不让你可以随便去复制,赋值.
+            如果实在想传个值就哪里,显式的说明内存转移std:move一下.然后这样传值完了之后,之前的对象也同样报废了.
+            只不过整个move你让明显的知道这样操作后会导致之前的unique_ptr对象失效.
 
 ```
 
