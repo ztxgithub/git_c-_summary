@@ -1197,7 +1197,8 @@
             //10个FuncPtrs指针的数组 让我们假设你希望把一个指向下面函数的指针存入funcPtrArray数组：
             FuncPtr funcPtrArray[10];
             
-            //编译错误！类型不匹配(doSomething 是一个返回值为int, 但是形参为NULL)，reinterpret_cast可以让编译器以你的方法去看待它们：funcPtrArray
+            //编译错误！类型不匹配(doSomething 是一个返回值为int, 但是形参为NULL)，
+            // reinterpret_cast可以让编译器以你的方法去看待它们：funcPtrArray
             funcPtrArray[0] = &doSomething;
             
             //不同函数指针类型之间进行转换
