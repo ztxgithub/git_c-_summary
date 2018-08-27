@@ -24,7 +24,7 @@
                 }
                 
             B. 正确用法
-                class Foo: public Observer
+                class Foo: public Observer　
                 {
                     public:
                         Foo()；
