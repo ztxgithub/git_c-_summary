@@ -133,10 +133,11 @@
           判断一个智能指针是否为空不能使用if(ptest == NULL),应该使用if(ptest.get() == NULL)
 ```
 
-## shared_ptr
+## shared_ptr（引用计数型智能指针）
 
 ```shell
-    1.shared_ptr：多个指针可以同时指向一个对象,当最后一个shared_ptr离开作用域时,内存才会自动释放
+    1.shared_ptr：　shared_ptr 控制对象的生命期
+                 　多个指针可以同时指向一个对象,当最后一个shared_ptr离开作用域时,内存才会自动释放
     2. shared_ptr创建
             (1) shared_ptr<int> sptr1( new int );
             (2) make_shared宏来创建(推荐使用)
@@ -222,7 +223,7 @@
         (1) weak_ptr没有重载*、->操作符，所以不能通过*、->操作符操作智能指针的内部数据
     2.创建
         以shared_ptr作为参数构造weak_ptr.　从shared_ptr创建一个weak_ptr增加了共享指针的弱引用计数(weak reference)，
-        意味着shared_ptr与其它的指针共享着它所拥有的资源.但是当shared_ptr离开作用域时,这个计数(weak reference)不作为
+        意味着 weak_ptr 可以知道对象是否被释放.但是当shared_ptr离开作用域时,这个计数(weak reference)不作为
         是否释放资源的依据.也就是除非强引用计数变为0，才会释放掉指针指向的资源,弱引用计数(weak reference)不起作用.
         
              shared_ptr<Test> sptr( new Test );
@@ -236,6 +237,7 @@
         (2) 调用expired()方法(查看引用的内存资源是否被释放),比调用use_count()方法速度更快
         
     6.从weak_ptr调用lock()可以得到shared_ptr或者直接将weak_ptr转型为shared_ptr
+    　 lock() 是线程安全的
              shared_ptr<Test> sptr( new Test );
              weak_ptr<Test> wptr( sptr );
              shared_ptr<Test> sptr2 = wptr.lock( );  //这样强引用计数加1
