@@ -216,6 +216,61 @@
         　　析构函数)，可以使用 shared_ptr
 ```
 
+### enable_shared_from_this 
+
+```shell
+    1. 防止在将对象的 this 指针作为返回值返回给了调用者时,无法判断该对象是否已经被析构掉，引用该对象时出现段错误
+       A.错误的代码:            
+            class Bad {
+            public:
+                Bad() { std::cout << "Bad()" << std::endl; }
+                ~Bad() { std::cout << "~Bad()" << std::endl; }
+                std::shared_ptr<Bad> getPtr() {
+                    return std::shared_ptr<Bad>(this);
+                }
+            };
+            
+            int main(int argc, char const *argv[])
+            {
+                std::shared_ptr<Bad> bp1(new Bad);
+                /*
+                 * 这里正确的方法为　bp2 = bp1
+                 * 而使用　bp2 = bp1->getPtr()　使得智能指针 bp2 认为引用该资源就它一个
+                 * 导致重复释放了 2 次资源，析构 bp1 和析构 bp2
+                 */
+                std::shared_ptr<Bad> bp2 = bp1->getPtr();
+                std::cout << "bp2.use_count: " << bp2.use_count() << std::endl;  // bp2.use_count: 1
+                return 0;
+            }
+            
+       B. 解决方法： 使用 enable_shared_from_this, 将this指针就能变成一个 shared_ptr
+       
+                class Good: public std::enable_shared_from_this<Good>
+                    {
+                        public:
+                            Good() { std::cout << "Good()" << std::endl; }
+                            ~Good() { std::cout << "~Good()" << std::endl; }
+                        
+                            std::shared_ptr<Good> getPtr() {
+                                return shared_from_this(); 
+                            }
+                    };
+                
+                int main(int argc, char const *argv[])
+                {
+                    std::shared_ptr<Good> bp1(new Good);
+                    std::shared_ptr<Good> bp2 = bp1->getPtr();
+                    std::cout << "bp2.use_count: " << bp2.use_count() << std::endl;
+                    return 0;
+                }
+                
+                结果:
+                    Good()
+                    bp2.use_count: 2
+                    ~Good()
+
+```
+
 ## weak_ptr
 
 ```shell
@@ -240,7 +295,8 @@
     　 lock() 是线程安全的
              shared_ptr<Test> sptr( new Test );
              weak_ptr<Test> wptr( sptr );
-             shared_ptr<Test> sptr2 = wptr.lock( );  //这样强引用计数加1
+             shared_ptr<Test> sptr2 = wptr.lock( );  //这样强引用计数加1，
+                                                     // 可以判断　sptr2　是否为 NULL 来看对应的资源是否释放
              
     7.weak_ptr解决循环引用问题(根据weak_ptr的弱引用计数不作为是否释放资源的依据)
             class B;
@@ -426,6 +482,41 @@
             如果实在想传个值就哪里,显式的说明内存转移std:move一下.然后这样传值完了之后,之前的对象也同样报废了.
             只不过整个move你让明显的知道这样操作后会导致之前的unique_ptr对象失效.
 
+```
+
+## scoped_ptr 
+
+```shell
+    1.boost::scoped_ptr的实现和std::auto_ptr非常类似,都是利用了一个栈上的对象去管理一个堆上的对象，
+      从而使得堆上的对象随着栈上的对象销毁时自动删除。不同的是，boost::scoped_ptr有着更严格的使用限制——不能拷贝。
+    　这就意味着　boost::scoped_ptr　指针是不能转换其所有权的．
+    2.特点
+        (1) 不能转换所有权
+                boost::scoped_ptr所管理的对象生命周期仅仅局限于一个区间（该指针所在的"{}"之间），无法传到区间之外，
+                这就意味着boost::scoped_ptr对象是不能作为函数的返回值的（std::auto_ptr可以）
+                
+        (2) 不能共享所有权
+                这点和std::auto_ptr类似。这个特点一方面使得该指针简单易用。另一方面也造成了功能的薄弱——不能用于stl的容器中。
+                
+        (3) 不能用于管理数组对象
+                由于boost::scoped_ptr是通过delete来删除所管理对象的，而数组对象必须通过deletep[]来删除，
+                因此boost::scoped_ptr是不能管理数组对象的，如果要管理数组对象需要使用boost::scoped_array类。
+                
+    3.常用操作
+        A. operator*() : 以引用的形式访问所管理的对象的成员
+        B. operator->(): 以指针的形式访问所管理的对象的成员
+        C. reset() : 释放所管理的对象，管理另外一个对象
+        D. swap(scoped_ptr& b) : 交换两个boost::scoped_ptr管理的对象
+        
+    4.
+        #include <boost/scoped_ptr.hpp>
+        
+            long * lp = new long;
+            boost::scoped_ptr<long> sp ( lp );
+            BOOST_TEST( sp.get() == lp );
+            BOOST_TEST( lp == sp.get() );
+            BOOST_TEST( &*sp == lp );
+            sp.reset(NULL);
 ```
 
 ## 注意事项

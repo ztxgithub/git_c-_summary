@@ -1215,5 +1215,21 @@
 ## 内存问题
 
 ```shell
+    1. 缓冲区溢出
+        解决方法用 std:vector<char>/ std:string 来管理缓冲区，自动计算缓冲区的长度，修改缓冲区最好通过成员函数
+        而不是裸指针
+        
+    2. 空悬指针/野指针
+            解决方法用 shared_ptr/weak_ptr
+            
+    3.重复释放
+        用 scoped_ptr,只在对象的析构函数释放一次
+    4.内存泄露
+        用 scoped_ptr
+    5.不配对的 new[] / delete
+            把 new[] 统统替换为 std:vector
+            
+    总结:
+        现代 c++ 一般不会出现 delete 语句，资源都是通过智能指针来管理
     
 ```
