@@ -211,9 +211,38 @@
         这个时候如果sptrB离开了作用域,则 share_ptrB->ref_count减少为1,sptrA离开了作用域,则 share_ptrA->ref_count减少为1,
         它们指向的资源并没有释放
         
+        问题3: 意外的延长对象的生命周期
+                (1) 如果有变量类似 vector<shared_ptr<T> > 看是不是可以考虑用 vector<weak_ptr<T> > 防止没有用的资源一直得不到
+                　　 释放
+                (2) boost::bind 会把 shared_ptr 类型的实参拷贝一份，对象的生命期不会短于 boost::function 对象
+                        class Foo
+                        {
+                            void do_somethind();
+                        };
+                        
+                        shared_ptr<Foo> pFoo(new Foo());
+                        boost:function<void()> func = boost:bind(&Foo::do_somethind, pFoo);
+        
     6.适用场景
         (1) 一个对象同时被多个线程使用，如何保证对象的安全使用(调用析构函数时确保该对象不被任何线程使用，使用该对象时还没有调用
         　　析构函数)，可以使用 shared_ptr
+        
+    7.注意
+        (1) 如果多个线程要对同一个 shared_ptr 对象进行读写，需要加锁
+        (2) shared_ptr 的拷贝开销要比拷贝原始指针要大，不过一般情况下都是以常引用(const reference),所以不存在
+            反复拷贝导致性能问题．
+            
+                void save(const shared_ptr<Foo> &pFoo);
+                bool validate(const shared_ptr<Foo> &pFoo);
+                
+                void onMessage(const string &msg)
+                {
+                	shared_ptr<Foo> pFoo(new Foo(msg));
+                	if(validate(pFoo))  //没有拷贝 pFoo
+                	{
+                		save(pFoo);     //没有拷贝 pFoo
+                	}
+                }
 ```
 
 ### enable_shared_from_this 
@@ -243,7 +272,7 @@
                 return 0;
             }
             
-       B. 解决方法： 使用 enable_shared_from_this, 将this指针就能变成一个 shared_ptr
+       B. 解决方法： 使用 enable_shared_from_this, 将this指针就能变成一个 shared_ptr 智能指针对象
        
                 class Good: public std::enable_shared_from_this<Good>
                     {
@@ -268,6 +297,9 @@
                     Good()
                     bp2.use_count: 2
                     ~Good()
+                    
+    2.正确的使用　shared_from_this(), 对象不能是 stack object , 必须是 heap object 且由 shared_ptr 管理
+    　其生命期
 
 ```
 
