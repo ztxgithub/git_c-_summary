@@ -86,7 +86,71 @@
     2.不手工调用 lock() 和　unlock() 函数，一切交给栈上的 Guard 对象的构造函数(加锁操作)和析构函数(解锁操作)，
     　这样保证同一个函数同一个 scope　内有加锁和解锁一对操作，避免在 foo() 函数内加锁，出现异常忘记解锁而导致死锁
     　现象，这种做法被称为 Scoped Locking
+    
+    3.如果一个函数既可能在已加锁的情况下调用，也可能在未加锁的情况下调用，那么就得拆分2个函数
+        (1) 跟原来的函数名一致，新的函数内加锁，转而调用第二个函数
+        (2) 给函数名加上 withlockhold ,不加锁，里面的具体的业务代码
+        
+        void post(const Foo &f)
+        {
+        	MutextLockGuard lock(mutex);  //进行加锁
+        	postWithLockHold(f);
+        }
+        
+        void postWithLockHold(const Foo &f)
+        {
+        	具体的业务代码
+        }
 
+```
+
+### 条件变量
+
+```shell
+    1.条件变量是非常底层的同步原语，很少直接使用，一般用它来实现高层的同步措施，例如 BlockingQueue<T> 
+      或则 CountDownLatch(倒时器)
+      
+    2. CountDownLatch 是一个同步方式，主要用途:
+            (1) 主线程等待多个子线程完成初始化后才能继续执行
+            (2) 多个子线程等待主线程完成一定操作后才开始执行
+            
+            class CountDownLatch : boost::noncopyable
+            {
+             public:
+            
+              explicit CountDownLatch(int count);
+            
+              void wait();
+            
+              void countDown();
+            
+              int getCount() const;
+            
+             private:
+              mutable MutexLock mutex_;
+              Condition condition_;
+              int count_;
+            };
+            
+            void CountDownLatch::wait()
+            {
+              MutexLockGuard lock(mutex_);
+              while (count_ > 0)
+              {
+                condition_.wait();
+              }
+            }
+            
+            void CountDownLatch::countDown()
+            {
+              MutexLockGuard lock(mutex_);
+              --count_;
+              if (count_ == 0)
+              {
+                condition_.notifyAll();　// 其中这里为　Condition::notifyAll() 而不是　Condition::notify()　主要是考虑到
+                                        //  向多个子线程发送消息，而 Condition::notify() 则是向单个线程发送消息
+              }
+            }
 ```
 
 
