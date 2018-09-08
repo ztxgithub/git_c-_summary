@@ -36,7 +36,7 @@
             1.较为简单的方法, 只需要在第9行　if (NULL == instance) 前加锁(Lock)进行临界资源保护, 缺点是　
             　每次访问该函数都需要进行一次加锁操作,影响程序的性能和执行效率.
             
-            2.双重检查锁定模式
+            2.双重检查锁定模式(Double Check Lock Pattern)
                 调用者在调用instance()时,pInstance在大部分时候都是非空的,因此没必要再次初始化。所以,
                 DCLP在 加锁之前 先做了一次pInstance是否为空的检查.只有判断结果为真（即pInstance还未初始化）,
                 加锁操作才会进行,然后再次检查pInstance是否为空(这就是该模式被命名为双重检查的原因).
@@ -91,21 +91,58 @@
                 如果遇到处理大量数据时,锁会成为整个性能的瓶颈,代码如上(较简单的应用)
                 v1.0.0 每一个不同的　单例模式,都会有内存被占用,即使该单例模式以及出了作用域.
                 
-                解决的方法：使用函数内的 local static 对象。当第一次访问getInstance()方法时才创建实例
-                    // version 1.2.0, 最好采用这种模式
-                    class Singleton
-                    {
-                        private:
-                            Singleton() { };
-                            ~Singleton() { };
-                            Singleton(const Singleton&);
-                            Singleton& operator=(const Singleton&);
-                        public:
-                            static Singleton& getInstance() {
-                                static Singleton instance;
-                                return instance;
-                            }
-                    }; 
+                解决的方法：
+                    (1) 使用函数内的 local static 对象。当第一次访问getInstance()方法时才创建实例
+                        // version 1.2.0, 最好采用这种模式
+                        class Singleton
+                        {
+                            private:
+                                Singleton() { };
+                                ~Singleton() { };
+                                Singleton(const Singleton&);
+                                Singleton& operator=(const Singleton&);
+                            public:
+                                static Singleton& getInstance() {
+                                    static Singleton instance;
+                                    return instance;
+                                }
+                        }; 
+                        
+                     (2) 如果采用指针的形式，则可以使用 pthread_once() 函数
+                                template<typename T>
+                                class Singleton : boost::noncopyable
+                                {
+                                     public:
+                                      static T& instance()
+                                      {
+                                        pthread_once(&ponce_, &Singleton::init);  // 省去了 if(value_ == NULL) 判断
+                                        return *value_;
+                                      }
+                                    
+                                     private:
+                                      Singleton();
+                                      ~Singleton();
+                                    
+                                      static void init()
+                                      {
+                                        value_ = new T();
+                                      }
+                                    
+                                      static void destroy()
+                                      {
+                                        delete value_;
+                                      }
+                                    
+                                     private:
+                                      static pthread_once_t ponce_;
+                                      static T*             value_;
+                                };
+                                
+                                template<typename T>
+                                pthread_once_t Singleton<T>::ponce_ = PTHREAD_ONCE_INIT;　　// 类静态成员变量初始化
+                                
+                                template<typename T>
+                                T* Singleton<T>::value_ = NULL;　　　// 类静态成员变量初始化
                     
                 注意:
                    1.如果单例模式类ASingleton 中调用　单例模式类BSingleton 中的方法, 则必须考虑到　单例模式类BSingleton 
