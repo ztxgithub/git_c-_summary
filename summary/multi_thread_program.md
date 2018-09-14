@@ -383,5 +383,40 @@
      
     2. c++ 的 iostream 不是线程安全的，　std:cout << "Now is" << time(NULL), 这个在多线程情况下可能存在
     　　内容输出的偏差，可能会有其他线程的打印信息．可以使用 printf() 来解决
+    
+    3. exit() 除了终止进程外，还会析构全局对象，这可能造成死锁
+            例子:
+                void fun_exit()
+                {
+                	exit(1);
+                }
+                
+                class GlobalObject
+                {
+                	public:
+                		void doit()
+                		{
+                			MutexLockGuard lock(mutex_);
+                			fun_exit();
+                		}
+                		
+                		~GlobalObject()
+                		{
+                			MutexLockGuard lock(mutex_); // 此次可能发生死锁
+                		}
+                		
+                	private:
+                		MutexLock mutex_;
+                };
+                
+                GlobalObject g_obj;
+                
+                int main()
+                {
+                	g_obj.doit();
+                }
+                
+            程序调用　GlobalObject::doit() 成员函数中辗转调用　exit()　函数，导致析构全局对象，调用
+            ~GlobalObject()(这里又申请加锁，之前　doit() 函数已经加锁了，导致死锁)
 ```
 
