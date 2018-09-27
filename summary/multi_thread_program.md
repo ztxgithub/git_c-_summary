@@ -504,6 +504,29 @@
             　　　内容: 这是传统的 java 网络编程方案 thread-per-connection , 在 java1.4 引入 NIO 之前常用的方案
             　　　　　　 适合长连接，不适合短链接，并且伸缩性受线程数的影响
             
+            (4) 方案5 : poll(Reactor) 
+                内容: 单线程 IO 多路复用，单线程Reactor 模式其优点是网络库赋值数据的收发，而用户只需要关心业务逻辑
+                　　　确定是事件的优先级得不到保证，因为 poll 返回后进行具体业务不会被其他紧急事件所打断，而且当
+                　　　某个事件发生时，其需要延迟几秒再处理，这时不能用 sleep() 进行阻塞等待，这样其他事件也要被
+                　　　阻塞了，解决方法是注册一个超时回调函数
+                
+            (5) 方案8 : Reactor + thread poll
+                内容: 全部的网络 IO 工作都在一个 Reactor 线程完成，计算的任务交个 thread pool (线程池)，
+                　　　比较适合计算任务相互独立，IO 压力不大(NIO 主要是网络数据的读写)
+                
+                     线程池另外一个作用是可以执行阻塞操作，在计算的线程池中进行操作，这样避免阻塞住 Reactor IO 线程
+                     
+            (6) 方案9 : Reactors in threads (one loop per thread)　
+                内容: 这是 muduo 内置的多线程方案，也是 Netty 内置的多线程方案，有一个 main Reactor 负责
+                　　　accept() 连接，把某个连接挂载 Reactor pools(可以采用 round-robin), 其中每一个
+                　　　Reactor　代表一个线程(先 epoll , 再对事件进行处理), 以后该连接的每一事件都是通过
+                　　　这个　Reactor　线程进程处理，　由于一个连接完全有一个线程管理，那么请求的顺序性
+                　　　有保证，因为是采用　Reactor pools　的机制，可以防止一个 Reactor 线程处理能力饱和．
+                
+            (7) 方案10: Reactors in processes (每一个进程一个 Reactor )
+                内容: Ngnix 的内置方案
+                
+                      
     3. 总结
             (1) 当一个线程阻塞等待 read() 上，如果又想要在该 socket 上发送数据(TCP 是全双工模式)
                     第一种方案: 用 2 个线程，一个读，一个写
@@ -514,6 +537,14 @@
                               这时就引出 Reactor 模式使 event-driver(事件驱动)的网络编程有章可循，它的中心思想
                                是网络编程有很多事务性的工作，可以提取为公共的框架，而用户只需要将业务代码写到
                                回调函数中，将该回调函数注册到框架中，让事件产生时，框架自动调用用户的回调函数．
+                               
+            (2) Reactor 事件循环所在的线程叫 IO 线程
+            (3) 使用一个 event loop 还是多个 events loops
+                    按照每千兆比特每秒的吞吐量配一个 event loop,　所以编写运行在千兆以太网的网络程序上，
+                    用一个 event loop 就可以了．如果要实现不同事务优先级，则可以将一个 event loop 对应与
+                    一个事务
+                    
+            (4) 推荐使用的网络编程模式 方案9 和 方案8 结合　one loop per thread　+ thread pool
                 
 ```
 
