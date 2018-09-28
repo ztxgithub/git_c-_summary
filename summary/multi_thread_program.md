@@ -538,6 +538,7 @@
                                是网络编程有很多事务性的工作，可以提取为公共的框架，而用户只需要将业务代码写到
                                回调函数中，将该回调函数注册到框架中，让事件产生时，框架自动调用用户的回调函数．
                                
+                               
             (2) Reactor 事件循环所在的线程叫 IO 线程
             (3) 使用一个 event loop 还是多个 events loops
                     按照每千兆比特每秒的吞吐量配一个 event loop,　所以编写运行在千兆以太网的网络程序上，
@@ -545,6 +546,16 @@
                     一个事务
                     
             (4) 推荐使用的网络编程模式 方案9 和 方案8 结合　one loop per thread　+ thread pool
+            (5) 使用 non-blocking IO 肯定要使用应用层的 buff(即网络库必须要有 buff)
+                    A. TcpConnection 必须要有 output buffer
+                            由于操作系统发送缓冲区的限制，所以如果应用层要发送大数据的话， TCP底层协议的要发送
+                            多次，但应用层程序不关心，只管生成数据，只要调用 TcpConnection::Send()［不阻塞］，其
+                            网络库(TcpConnection::Send() 的实现) 负责具体的发送，所以应用层调用
+                            TcpConnection::Send()完继续进行 event loop. 具体实现的流程是用户层将发送的数据 append 
+                            到　对应 TcpConnection output buffer，　然后注册 POLLOUT 事件，一旦 socket 变得可写
+                            就立刻发送剩下的数据．　如果　output buffer 里还有待发送的数据，而程序又想关闭连接，
+                            那么这个时候网络库不能立马关闭连接，而是等数据发送完毕
+                            
                 
 ```
 
