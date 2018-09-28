@@ -159,7 +159,7 @@
             }
 ```
 
-### 利用 share_ptr 实现 copy-on-wirte(读写锁的效果)
+### 利用 share_ptr 实现 copy-on-wirte (读写锁的效果)
 
 ```shell
     1.用普通的 mutex 来替换读写锁，原理如下
@@ -184,9 +184,9 @@
                           if (!g_foos.unique())
                           {
                             g_foos.reset(new FooList(*g_foos));  // 通过将原来老的数据拷贝到 g_foos, 使其他线程对应读数据
-                            printf("copy the whole list\n");　　　// 不受影响
-                          }
-                          assert(g_foos.unique());
+                            printf("copy the whole list\n");　　　// 不受影响,因为新的 g_foos 的引用为 1, 而老的 g_foos
+                          }                                      // 引用大于 1,　有其他 reader 在引用，当 reader 引用完后，
+                          assert(g_foos.unique());　　　　　　　　 // 会自动释放老的 g_foos(之所以怎么做 reader 读没有修改过的数据)
                           g_foos->push_back(f);
                     }
                     
