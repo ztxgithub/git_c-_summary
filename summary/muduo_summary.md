@@ -40,6 +40,9 @@
                     C. 每一条消息的头部加一个长度字段
                     D. 利用消息本身的格式来分包，例如 XML 格式的消息中 <root>  </root>　的配对，以及 JSON 格式中
                     　　{...} 的配对，解析这种消息格式通常会用到状态机
+                    
+       8. 对于网络库中，可以用 codec 来分离 "消息接受" 和 "消息处理"，如果网络库只提供相当于 char buf[1024], 或则
+       　　不提供消息缓冲区，仅仅通知程序 "socket 可读/可写", 要程序自己管理 IO buf, 这样网络库用起来就很不方便
             
 
 ```
@@ -70,4 +73,24 @@
        example/asio/chat/server_thread_efficient.cc 借 shared_ptr 实现 copy-on-write 的手法减低锁竞争
        example/asio/chat/server_thread_highperformance.cc 采用 thread local　变量，实现多线程高效转发．
 
+```
+
+## 网络库的 IO Buffer
+
+```shell
+    1.Buffer 功能需求
+        (1) 对外表现为一块连续的内存(char *p, int len),以方便客户编写
+        (2) 其 size() 可以自动增长，适应不同大小的消息，而不是 char buf[1024]
+        (3) 内部以 std::vector<char> 来保存数据，并提供相应的
+        
+    2. 如何设计每个连接的接受缓冲区
+            (1) 一方面要考虑到减少系统调用(read()),一次从 TCP socket 读的数据越多越好(这意味着连接的接受缓冲区越大越好)
+            　　另一方面连接的接受缓冲区不能太大，这样如果服务端的连接数大(例如10000),则消耗内存过多
+            
+            (2) 解决方案(readv() 结合栈上空间)
+                    在栈上准备 10000 byte 的 extrabuf, 然后利用 readv() 读取数据， iovec 有两块，第一块指向了
+                    muduo buf 的 writable(针对 muduo buf 而言) 字节，第二块则指向 extrabuf,如果读入的数据不多，
+                    则全部读到 muduo buf 中；如果读入数据太大，则先存满 muduo buf,再接着存 extrabuf, 然后程序再把
+                    extrabuf 里的数据 append 到 muduo buf
+                    
 ```
