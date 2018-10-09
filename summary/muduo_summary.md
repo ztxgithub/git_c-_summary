@@ -94,3 +94,48 @@
                     extrabuf 里的数据 append 到 muduo buf
                     
 ```
+
+## codec (编解码器)
+
+```shell
+    1. 编解码器(codec)是 encoder 和　decoder 的缩写，它是一层中间件，位于 TcpConnection 和 ChatServer 之间，
+       它将识别完整的数据消息，将 muduo:net:Buffer 转化为 string, 再将 string 给 ChatServer 处理函数进行处理．
+       发送过程也是一样的， ChatServer 通过 LengthHeaderCodec::send()来发送 string, LengthHeaderCodec 将它
+       编码为 Buffer
+       
+    2. ProtobufCodec 和 ProtobufDispatcher 主要用于 Protobuf Message 的消息的编解码, 先将消息进行解码,再根据
+       对应的消息类型进行消息的分发处理. 新的 Protobuf Message 类型只需要实现对应的业务逻辑就行
+```
+
+## 限制服务器的最大并发连接数
+
+```shell
+    1.限制服务器的最大并发连接数的原因
+        (1) 防止服务器超载
+        (2) 防止 file descriptor 用完
+                file descriptor 用完可能导致 CPU 使用率为 100%, 当使用 Reactor 模式进行非阻塞的 accept 连接时,
+                当 file descriptor 用完时, accept() 返回 EMFILE, 本进程的文件描述符已经达到上限, 无法为新连接
+                创建 socket 文件描述符, 这个时候继续调用 epoll_wait(), 会立马返回,因为新的连接等待可读, listen socket
+                还是可读,这时就会陷入 busy loop 
+                
+            解决方案:
+                第一种方案:
+                    占用一个空闲的文件描述符,当遇到 file descriptor 用完的情况,先关闭该空闲的文件描述符,提供一个空闲的
+                    名额,再 accept() 后拿到这个 socket 文件描述符, 随后立刻 close() 掉, 这样就优雅的断开了客户端的连接
+                    最后重新打开一个空闲文件,把"坑"占用,以备再次出现这种情况
+                    
+                第二种方案:
+                    将 soft limit 与 hard limit 相比设置低一点,这样如果超过 soft limit 就主动关闭连接,
+                    避免出现 file descriptor 耗尽(使用超过 hard limit)
+                    
+                第三种方案:
+                    可以在程序中定义一个保存当前活动连接数的变量,当它超过设置的最大连接数时,在 onConnect 时就立刻 close 掉
+```
+
+## 定时器
+
+```shell
+    1.计时(获取当前时间)
+        只使用 gettimeofday() 来获取当前时间,原因如下:
+            A. 
+```
