@@ -137,5 +137,63 @@
 ```shell
     1.计时(获取当前时间)
         只使用 gettimeofday() 来获取当前时间,原因如下:
-            A. 
+            A. 在 x86-64 平台上, gettimeofday() 不是系统调用,是在用户太实现的,减少了上下文切换和内核开销
+            
+    2.定时
+        只使用 timerfd_* 系列函数(timerfd_create, timerfd_gettime, timerfd_settime), 原因如下:
+            A. timerfd_create() 把时间变成一个文件描述符,这样很方便融入到 epoll/select 框架中,
+               用同一的方式处理 IO 事件和超时事件
+```
+
+## 用 timing wheel 踢掉空闲连接
+
+```shell
+    1.采用 share_ptr 和 weak_ptr 方式进行踢掉空闲连接, 首先当连接建立时将该连接作为强引用加入到循环队列尾部的 bucket,
+      同时将(WeakEntryPtr weakEntry(entry); conn->setContext(weakEntry)) 以便消息到达时使用
+      当该连接收到消息时, 取出对应的值转为强引用,在加入到循环队列尾部的 bucket.
+      当超时事件产生时, 向循环队列尾部的插入空的 bucket, 这样循环队列头就会有 bucket 弹出,这样就会进行析构函数,
+      如果强引用计数为 0, 则调用该析构函数
+      
+      muduo/examples/idleconnection/echo.cc
+
+```
+
+# muduo 网络库设计及实现
+
+## EventLoop
+
+```shell
+    1. one loop per thread 代表处理网络 IO 线程中只能有一个 EventLoop 对象,因此在 EventLoop 构造函数时
+       会检查当前线程是否已经创建了其他的 EventLoop 对象.EventLoop 的构造函数会记住本对象所属的线程(threadId_)
+       创建 EventLoop 对象的线程是 IO 线程,主要用于运行事件循环 EventLoop::loop(). 同时 EventLoop 对象可能会在
+       其他线程中使用(不一定是网络 IO 线程),EventLoop 对象中的有些成员函数是线程安全的(可以跨线程调用), 但是有些成员函数
+       (例如 EventLoop::loop()) 只能在网络 IO 线程中调用,同时 EventLoop 对象的创建也只能在网络 IO 线程创建,
+       所以 EventLoop 提供了 isInLoopThread() 的成员函数来判断能不能在该线程中调用 EventLoop::loop().
+       
+       EventLoop 包含　Poll class，　它调用 Poller::loop() 获取当前活动的 channel 列表，　然后依次调用
+       活动的 channel 列表中的 Channel::handleEvent() 函数
+       
+```
+
+## Reactor 关键结构
+
+```shell
+    1. Reactor 最核心是事件分发机制,即将 IO multiplexing 拿到的 IO 事件分发给各自文件描述符的事件处理函数
+    2. channel class
+            每一个 channel 对象只属于一个 EventLoop 对象(即只属于某一个 IO 线程), 每一个 channel 对象只负责
+            一个文件描述符(一个 socket 连接或则 timerfd )的 IO 事件分发,但它并不拥有这个 fd,  channel 对象析构的时候也不会
+            close(fd), channel 对象会把这个 fd 发生的不同的 IO 事件分发到不同的回调函数,例如 ReadCallback,
+            WriteCallback 等. muduo 用于一般不直接使用 channel 对象,而会使用更上层的封装,例如 TcpConnection,
+            该 TcpConnection 对象有 channel 的成员变量, 它由 EventLoop:loop() 调用,
+            它的功能是根据 revents_(事件发生类型) 调用不同的回调函数.
+            
+    3. Poll class 
+        Poll class 是 IO multiplexing 的封装, Poll class 中 包含要关心的事件集合
+        vector<struct pollfd> pollfds_ , Poller::poll()函数的发生事件 revents 保存到对应的 channel class 中,
+        供 channel::handleEvent() 使用,但 Poller 并不拥有 Channel , Channel 在析构之前自己 
+        unregister (EventLoop::removeChannel()), 避免空悬指针, Poll 值负责 IO multiplexing ,不负责事件的分发.
+        Poller::updateChannel()的功能是维护和更新 pollfds_.
+        
+    3. TimeQueue class
+        实现定时器功能，
 ```

@@ -1,5 +1,12 @@
 # C++ boost库
 
+## 基础知识
+
+```shell
+    1. 如果想要一个无效对应的类型的指针(不需要进行复杂的构造)
+            Timer *invalid_ptr = reinterpret_cast<Timer*>(UINTPTR_MAX)
+```
+
 ## boost 简介
 
 ```c++
@@ -280,4 +287,65 @@
             f_add_display(foo, 1);  
         }  
 
+```
+
+## std::set
+
+```shell
+    1. std::set 内部保存是使用红黑树实现， set::insert 之后会将数据进行排序保存
+    2. STL 的 map、multimap、set、multiset 都有三个比较特殊的函数，lower_bound、upper_bound、equal_range
+        原型:
+            iterator lower_bound (const value_type& val) const;
+                描述:
+                    返回指向容器中第一个值等于给定搜索值或在给定搜索值之后的元素的迭代器，
+                    即第一个等于或大于给定搜索值元素的迭代器。
+                    
+                参数:
+                     value_type 是存储在当前容器中的元素的类型
+                     
+                返回值:
+                    指向容器中第一个等于给定搜索值或在给定搜索值之后的元素的迭代器
+            
+            iterator upper_bound (const value_type& val) const;
+                描述:
+                    查找的键值为key，则C.upper_bound(key)会查找第一个比key大的元素的迭代器
+            
+            pair<iterator,iterator> equal_range (const value_type& val) const;
+            equal_range 返回两个迭代器，第一个迭代器是 lower_bound 的返回值，第二个迭代器是 upper_bound 的返回值
+            
+        (A) 实例代码
+                    typedef std::pair<int, Timer*> Entry;
+                    set<Entry> foo1;
+                    Timer* timer1 = new Timer(1);
+                    foo1.insert(make_pair(1, timer1));
+                    Timer* timer2 = new Timer(1);
+                    foo1.insert(make_pair(2, timer2));
+                    Timer* timer6 = new Timer(1);
+                    foo1.insert(make_pair(6, timer6));
+                    
+                    int now = 2;
+                    Entry sentry = std::make_pair(now, reinterpret_cast<Timer*>(UINTPTR_MAX));
+                    set<Entry>::iterator it = foo1.lower_bound(sentry);
+                    printf("it->first:%d\n", it->first);　　//输出　it->first:2
+
+```
+
+## std::copy
+
+```shell
+    1. 如果要把一个序列（sequence）拷贝到一个容器（container）中去
+            std::copy(start, end, std::back_inserter(container));
+            
+            start 和 end 是输入序列（假设有N各元素）的迭代器（iterator），container是一个容器，该容器的接口包含函数push_back。
+            假设 container 开始是空的，那么 copy 完毕后它就包含N个元素，并且顺序与原来队列中的元素顺序一样。
+            标准库提供的 back_inserter 模板函数很方便，因为它为 container 返回一个 back_insert_iterator 迭代器，
+            这样，复制的元素都被追加到container的末尾了。 
+            现在假设 container 开始非空（例如：container 必须在循环中反复被使用好几次）。那么，要达到原来的目标，
+            必须先调用 clear 函数然后才能插入新序列。这会导致旧的元素对象被析构，新添加进来的被构造。
+            不仅如此，container 自身使用的动态内存也会被释放然后又创建，就像list，map，set的节点。
+            某些vector的实现在调用 clear 的时候甚至会释放所有内存。
+            
+    2. 考虑到在一个已有的元素上直接 copy 覆盖更高效, copy只负责复制，不负责申请空间，所以复制前必须有足够的空间
+        如果 container 的大小小于输入序列的长度 N 的话，程序会导致崩溃（crash）
+            std::copy(start, end, container.begin()); 
 ```
