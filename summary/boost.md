@@ -3,8 +3,7 @@
 ## 基础知识
 
 ```shell
-    1. 如果想要一个无效对应的类型的指针(不需要进行复杂的构造)
-            Timer *invalid_ptr = reinterpret_cast<Timer*>(UINTPTR_MAX)
+
 ```
 
 ## boost 简介

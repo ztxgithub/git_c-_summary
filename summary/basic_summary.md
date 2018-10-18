@@ -34,6 +34,30 @@
         
         (5) 转移构造函数　 X::X(X&&);                   // move constructor
         (6) 转移赋值操作符  X& X::operator=(X&&);       // move assignment operator
+        
+    3. 如果想要一个无效对应的类型的指针(不需要进行复杂的构造)
+           Timer *invalid_ptr = reinterpret_cast<Timer*>(UINTPTR_MAX)
+           
+    4. 需要传入函数指针
+            void print(const char* msg)
+            {
+                printf("msg %s %s\n", muduo::Timestamp::now().toString().c_str(), msg);
+            }
+            typedef boost::function<void()> Callback;
+            Callback = boost::bind(print, "once1") 
+            
+    5. 一般在多线程中对于临界区中尽量减少操作
+            {
+                MutexLockGuard lock(mutex_);
+                functors.swap(pendingFunctors_);  // 在临界区内只需将资源拷贝到临时变量中，减少对互斥锁的占用
+            }
+            
+            for (size_t i = 0; i < functors.size(); ++i)
+            {
+                functors[i]();  // 在释放互斥锁情况下才进行相应的操作
+            }
+            
+            
             
 
 ```

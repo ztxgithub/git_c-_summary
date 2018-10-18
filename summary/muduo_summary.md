@@ -173,6 +173,15 @@
        EventLoop 包含　Poll class，　它调用 Poller::loop() 获取当前活动的 channel 列表，　然后依次调用
        活动的 channel 列表中的 Channel::handleEvent() 函数
        
+       EventLoop::runAt() 可以实现在某个时间点进行定时任务
+       
+       EventLoop::runInLoop() 如果用户在当前 IO 线程调用这个函数，回调会同步进行(即立马执行)．如果用户在其他
+       线程调用　EventLoop::runInLoop()，cb 会被加入队列， IO 线程会唤醒调用这个 callback, 这样做的原因是
+       这样可以在不用加锁的情况下保证线程的安全性．具体实现是　EventLoop::loop() 除了调用 poll 进行监听事件，
+       获取当前活动的 channel 列表，　然后依次调用活动的 channel 列表中的 Channel::handleEvent() 函数，接下来
+       还调用 doPendingFunctors()(这个函数主要是处理其他线程调用EventLoop::runInLoop(cb)时加入的回调函数).　
+       如果是其他线程调用 EventLoop::runInLoop(cb), 除了将回调函数加入到 pendingFunctors_ 中，
+       同时进行 wake_up()(主要是向 eventfd 写数据，使得 EventLoop::loop() 的 poll 能够监听到事件)
 ```
 
 ## Reactor 关键结构
@@ -195,5 +204,11 @@
         Poller::updateChannel()的功能是维护和更新 pollfds_.
         
     3. TimeQueue class
-        实现定时器功能，
+        实现定时器功能，给 EventLoop 加上定时器功能，通过 timerfd 可以用处理 IO 事件的方式来处理定时．
+        TimeQueue 需要高效的组织目前尚未到期的 Timer(该 class 包含用户定义的回调函数，执行的时间点，以及是否持续间执行)
+        能快速得根据当前时间找到已到期的 Timers(可能是多个),也要高效添加和删除 Timer, 所以采用
+         std::set< std::pair<Timestamp, Timer*> > timers_ 来组织，TimeQueue 使用一个 Channel 来观察 timerfd_ 上的
+         readable 事件. 当最早的定时时间被触发时，调用　TimerQueue::handleRead()，其中该函数中调用 
+         TimerQueue::getExpired() , getExpired() 会从 timers_ 中筛选出已到期的 Timer, 并将他们从 timers_ 中删除，
+         同时　TimerQueue::handleRead() 中将调用每个已到期的 Timer 中的用户定义的回调函数．
 ```
