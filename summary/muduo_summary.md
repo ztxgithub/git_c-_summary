@@ -160,7 +160,9 @@
 
 # muduo 网络库设计及实现
 
-## EventLoop
+## EventLoop 
+
+### EventLoop 基本原理
 
 ```shell
     1. one loop per thread 代表处理网络 IO 线程中只能有一个 EventLoop 对象,因此在 EventLoop 构造函数时
@@ -184,7 +186,7 @@
        同时进行 wake_up()(主要是向 eventfd 写数据，使得 EventLoop::loop() 的 poll 能够监听到事件)
 ```
 
-## Reactor 关键结构
+### Reactor 关键结构
 
 ```shell
     1. Reactor 最核心是事件分发机制,即将 IO multiplexing 拿到的 IO 事件分发给各自文件描述符的事件处理函数
@@ -211,4 +213,39 @@
          readable 事件. 当最早的定时时间被触发时，调用　TimerQueue::handleRead()，其中该函数中调用 
          TimerQueue::getExpired() , getExpired() 会从 timers_ 中筛选出已到期的 Timer, 并将他们从 timers_ 中删除，
          同时　TimerQueue::handleRead() 中将调用每个已到期的 Timer 中的用户定义的回调函数．
+         
+    4. EventLoopThread class
+          IO 线程并不一定的是主线程，我们可以在任何线程创建并运行 EventLoop,同时一个程序不止一个 IO 线程，为了避免
+          事件的优先级翻转，采用多个 IO 线程进行不同类型事件的处理，为了方便使用，定义了 EventLoopThread class
 ```
+
+## TcpServer
+
+```shell
+    1.处理连接的建立
+            (1)  
+                EventLoop        Channel         Acceptor           TcpServer
+                   loop() ----> 
+                               handleEvent() ---->
+                                                 handleRead()
+                                                 accept()
+                                                 newConn()           
+                                                                    create ----->  TcpConnection
+                                                                                       connCb()
+                                                                                       
+                                                                                       
+            (2) TcpServer class
+                    TcpServer class 功能是管理 accept() 获得的 TcpConnection, TcpServer 供用户直接使用，用户
+                    只需要设置号 callback,再调用 start() 即可
+                    
+            (3) TcpConnection class
+                
+                   A.
+                        TcpConnection 使用 Channel 来获得 socket 上的 IO 事件，它会自己处理 writeable　事件，把
+                        readable　事件通过 MessageCallback 传达给用户， TcpConnection 表示的是"一次　TCP 连接"，
+                        一旦　TCP 连接断开，这个 TcpConnection 对象就没有用途，TcpConnection　没有发起连接的功能
+                        其构造函数的参数是已经建立好连接的 sock_fd ,所以初始状态为 kConnecting
+                        
+                   B. 
+                        TcpConnection 断开连接，
+``` 
