@@ -348,3 +348,19 @@
         如果 container 的大小小于输入序列的长度 N 的话，程序会导致崩溃（crash）
             std::copy(start, end, container.begin()); 
 ```
+
+## std::fill
+
+```shell
+    1. 将容器内某个范围值都填充为 value
+            std::fill(message1.begin(), message1.end(), value);
+
+```
+
+## string
+
+```shell
+    1. 可以提前申请好内存大小
+            string.resize(len)
+
+```

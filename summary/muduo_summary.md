@@ -93,6 +93,14 @@
                     则全部读到 muduo buf 中；如果读入数据太大，则先存满 muduo buf,再接着存 extrabuf, 然后程序再把
                     extrabuf 里的数据 append 到 muduo buf
                     
+                    优点:
+                        1.使用　scatter-gather I/O　(发散聚合IO: readv()),并且一部分缓冲区取自 stack,
+                          这样输入缓冲区足够大，通常一次 readv() 调用就能取完全部的数据，由于数据缓冲区
+                          足够大，也节省一次 ioctl(socket_fd, FIONREAD, &length),不必事先知道有
+                          多少数据可读而提前预留(reserve()) buffer 的 capacity(), 可以一次性通过
+                          readv() 读取，将栈空间(extrabuf) 中的数据 append() 给 buf
+                          
+                    
 ```
 
 ## codec (编解码器)
@@ -247,5 +255,35 @@
                         其构造函数的参数是已经建立好连接的 sock_fd ,所以初始状态为 kConnecting
                         
                    B. 
-                        TcpConnection 断开连接，
+                        TcpConnection 断开连接
+                        
+                   C.
+                        TcpConnection 接受数据采用 inputBuffer_ 缓冲区
+                        
+                   D.
+                        TcpConnection 发送数据是主动的，接受数据是被动的．
+                        发送数据比接受数据更难
+                            (1) muduo采用level trigger ,所以只能在需要时才关注 writeable 事件，
+                                否则会造成 busy loop.这带来编码上的难度
+                            (2) 如果发送的速度要超过对端接受的速度，会造成数据在本地内存的堆积，这带来
+                            　　　设计及安全性方面的难度
+                            
+                        解决方案:
+                            提供
+                        
+                        具体实现，　TcpConnection 发送数据供外部使用是 TcpConnection::send(), 如果
+                        TcpConnection::send()　是在 IO 线程中调用的，则直接调用　TcpConnection::sendInLoop(),
+                        如果 TcpConnection::send()　是在非 IO 线程中调用的，则通过 
+                        loop_->runInLoop(bind(TcpConnection::sendInLoop)), 将　TcpConnection::sendInLoop()　传给
+                        IO 线程进行调用，　TcpConnection::sendInLoop()　中如果 IO 线程中没有该连接对应的写事件，则
+                        先尝试直接用 write() 系统调用直接发送数据，如果直接发送(write)只发送了部分数据，则将剩余的数据
+                        放入到 outputBuffer_,并开始关注 writeable 事件，以后在 handleWrite() 中发送剩余的数据
+                        
+            (4) TCP No Delay 和　TCP keepalive 都是常用的 TCP 选项
+            
+                    A.
+                        TCP No Delay 是禁用 Nagle 算法，避免连续发包出现延迟，对低延迟网络服务有用
+                        
+                    B.
+                        TCP keepalive 定期探查 TCP 连接是否存在
 ``` 

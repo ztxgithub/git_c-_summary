@@ -58,7 +58,8 @@
             }
             
             
-           
+    6. iter_swap() 函数: 进行容器内 iter 之间的交换
+            iter_swap(pollfds_.begin() + idx, pollfds_.end() - 1);       
 
 ```
 
