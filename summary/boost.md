@@ -364,3 +364,17 @@
             string.resize(len)
 
 ```
+
+## boost::ptr_vector<>
+
+```shell
+    1. boost::ptr_vector 存放的是指针,维护的是堆分配的对象
+    2. boost::ptr_vector<T> 与　vector<share_ptr<T> > 的区别
+            (1) ptr_vector 用来保存heap-allocated objects，有放进去的指针会在出了作用域之后自动删除，
+                所以有”own”的语义. std::vector<boost::shared_ptr<T> > 保存的对象可以被别人own
+                
+    3. 实例代码
+             boost::ptr_vector<int> v; 
+              v.push_back(new int(1)); 
+              v.push_back(new int(2));
+```

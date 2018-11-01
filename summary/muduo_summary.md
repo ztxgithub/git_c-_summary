@@ -269,7 +269,9 @@
                             　　　设计及安全性方面的难度
                             
                         解决方案:
-                            提供
+                            提供 HighWaterMarkCallback(高水位回调)　和　WriteCompleteCallback(低水位回调)
+                            WriteCompleteCallback：如果发送缓冲区清空(发送数据全部发完)，则被调用
+                            HighWaterMarkCallback: 输出缓冲区的长度超过用户指定的长度，则被调用
                         
                         具体实现，　TcpConnection 发送数据供外部使用是 TcpConnection::send(), 如果
                         TcpConnection::send()　是在 IO 线程中调用的，则直接调用　TcpConnection::sendInLoop(),
@@ -286,4 +288,18 @@
                         
                     B.
                         TCP keepalive 定期探查 TCP 连接是否存在
+                        
+            (5) 多线程 TcpServer 是用 one loop per thread 的思想，多线程 TcpServer 自己的 EventLoop 只用来接受
+            　　　新的连接，而新的连接(TcpConnection)会用其他的 EventLoop 来执行 IO.(单线程 TcpServer 接受(listen) 
+                 与 连接(TcpConnection) 共用一个 EventLoop). muduo 的 event loop pool 由 EventLoopThreadPool 
+                 class 表示．
+                 
+                 TcpServer 每次新建一个 TcpConnection 都会调用 EventLoopThreadPool::getNextLoop() 来取得
+                 EventLoop 
 ``` 
+
+## TcpClient
+
+```shell
+    1.
+```
