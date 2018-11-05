@@ -59,7 +59,23 @@
             
             
     6. iter_swap() 函数: 进行容器内 iter 之间的交换
-            iter_swap(pollfds_.begin() + idx, pollfds_.end() - 1);       
+            iter_swap(pollfds_.begin() + idx, pollfds_.end() - 1);      
+             
+    7. typedef std::pair<Timer*, int64_t> ActiveTimer;
+       ActiveTimer timer(timerId.timer_, timerId.sequence_);  // std:pair 的初始化
+       
+    8. 可以通过事件回调函数 epoll/ poll, eventfd, timerfd, 
+    
+    9. 
+        epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
+        
+        std::vector<struct epoll_event> events_;
+        epoll_wait(epollfd_, &*events_.begin(), static_cast<int>(events_.size()), timeoutMs);
+        
+        这边第二传入参数: struct epoll_event *events = &*events_.begin();
+        
+        如果是用 C++ 11
+            struct epoll_event *events = events_.data();
 
 ```
 

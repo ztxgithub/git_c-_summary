@@ -153,6 +153,7 @@
                用同一的方式处理 IO 事件和超时事件
 ```
 
+
 ## 用 timing wheel 踢掉空闲连接
 
 ```shell
@@ -221,6 +222,12 @@
          readable 事件. 当最早的定时时间被触发时，调用　TimerQueue::handleRead()，其中该函数中调用 
          TimerQueue::getExpired() , getExpired() 会从 timers_ 中筛选出已到期的 Timer, 并将他们从 timers_ 中删除，
          同时　TimerQueue::handleRead() 中将调用每个已到期的 Timer 中的用户定义的回调函数．
+         
+         关于 TimeQueue::cancelInLoop() 的实现机制,首先更加 Timer 的信息,将该信息从 activeTimers_ 和 timers_
+         删除,这样在时间事件触发时通过 TimerQueue::getExpired() 就不会从 timers_ 中筛选出该 Timer. 同时要考虑
+         一个情况就是当时间事件触发 Timer 调用的回调函数就是调用 TimeQueue::cancelInLoop(),那么 cancelInLoop() 
+         就需要将该 Timer 保存到 cancelingTimers_ 中, 在 TimerQueue::handleRead() 函数体的末尾
+         reset(expired, now)中如果需要重复触发的 Timer 被 cancal,则不被加入到 timers_ 中
          
     4. EventLoopThread class
           IO 线程并不一定的是主线程，我们可以在任何线程创建并运行 EventLoop,同时一个程序不止一个 IO 线程，为了避免
@@ -301,5 +308,13 @@
 ## TcpClient
 
 ```shell
-    1.
+    1.Connector
+        (A) 主动连接比被动连接更复杂，第一，处理错误情况麻烦．第二，要考虑重连
+        (B) Connector 只负责建立 socket 连接，不负责创建 TcpConnection
+        (C) 在 connect() 的返回值
+                EAGAIN : 代表真错误，表示本机的 Ephemeral port(临时端口)　暂时用完，要关闭 socket 延期重连
+                EINPROGRESS : 正在连接，不一定意味着连接成功建立，需要 getsocket(sockfd, SOL_SOCKET, SO_ERROR)
+                              来确认一下．
+                
+        
 ```
