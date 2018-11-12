@@ -76,7 +76,16 @@
         
         如果是用 C++ 11
             struct epoll_event *events = events_.data();
+            
+    10. 我们不能原地更新正在使用的动态链接库和可执行文件,因为这让进程运行一段时间后会因为 SIGBUS 而崩溃
 
+```
+
+## 项目指导
+
+```shell
+    1. 我们可以有特别简单的类,但不能有特别复杂的类,如果一个类太过复杂,看能不能把它拆分为 2 个类,责任分开, 2 个类有公共代码
+        考虑提炼出一个工具类,始终让代码清晰可懂.继承最好少用,用包含成员对象最好
 ```
 
 ## this 指针
@@ -115,6 +124,71 @@
     　　原因是类中出现了指针类型的成员,有指针类型的成员,我们必须防止浅拷贝问题,所以,一定需要拷贝构造函数和赋值操作符,
         这两个函数是防止浅拷贝问题所必须的
 
+```
+
+## pimpl 方法
+
+```shell
+    1. Pimpl(pointer to implementation, 指向实现的指针)是用来对“类的接口与实现”进行解耦的方法,其公有类中
+       拥有一个私有指针(class Pimpl*)，该指针指向隐藏的实现类.这样当其隐藏的实现类内部的实现发生变化,
+       所有包含公有类的 .h,就不用重新编译,减少编译时间
+       
+    2. Pimpl 的优点
+            (1) 降低耦合
+            (2) 信息隐藏
+            (3) 降低编译依赖，提高编译速度
+            (4) 接口与实现分离
+            
+    3. 示例
+            (1) 错误示例,刚开始 Book 只有 m_Contents(目录) 一个属性, 用户代码 Book.print();
+                class Book
+                {
+                    public:
+                      void print();
+                    
+                    private:
+                      std::string  m_Contents;
+                };
+
+                如果以后需要增加一标题属性,修改如下:
+                 class Book
+                 {
+                     public:
+                       void print();
+                     
+                     private:
+                       std::string  m_Contents;
+                       std::string  m_Title;
+                 };
+                 
+                 虽然使用 print() 接口仍然可以直接输出书籍的信息，但是 Book 类的使用者却不得不重新编译
+                 所有包含 Book 类头文件的代码
+                 
+            (2) 正确代码:
+                    Book.h
+                    class Book
+                    {
+                        public:
+                          Book();
+                          ~Book();
+                          void print();
+                        
+                        private:
+                          class BookImpl;  // Book实现类的前置声明
+                          BookImpl* pimpl;
+                    };
+                               
+                    Book.cpp
+                       class Book::BookImpl
+                    {
+                        public:
+                          void print();
+                        
+                        private:
+                          std::string  m_Contents;
+                          std::string  m_Title;
+                    };
+                                   
 ```
 
 # c++11 新特性
