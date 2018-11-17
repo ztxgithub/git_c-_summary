@@ -187,6 +187,8 @@
                       return 0;
                   }
                   
+        (2) 
+                  
     4.其他注意事项
         (1) std::ref()表示传引用, std::cref()表示传不变引用, 
             std::ref()和std::cref()是针对函数式编程(如std::bind)
@@ -287,6 +289,53 @@
         }  
 
 ```
+
+## boost:bind 和 boost:function 取代虚函数
+
+```shell
+    1. 面向对象的[继承]和[多态]是能不用就不用, 其耦合性太强
+    2. 在传统的 c++ 程序中,事件回调是通过虚函数进行的(主要是通过继承基类来重写虚函数).网络库具体的实现,一般在网络库中定义
+       几个基类,在基类中声明了虚函数,例如 onConnect(), onMessage, onTime() 等.用户代码使用网络库需要继承网络库中的基类,
+       同时用户需要覆盖写这些虚函数. c++ 的动态绑定是通过指针或则引用实现的,用户在使用时要将派生类对象的指针转化为基类指针,
+       再将这个基类指针传给网络库(注册到网络库). 当网络库检测到事件的产生, 调用虚函数, 而这个虚函数是通过动态绑定调用用户
+       自定的虚函数. 不过这个方式有个问题, 用户定义的派生类对象是 malloc 动态内存, 那么该对象的所有权和生命期很模糊,
+       到底是用户还是网络库谁有权利释放它. 如果是网络库 delete, 怎么保证程序的其他地方恰好引用了释放后的对象
+       
+    3. 在现代的 c++ 程序中,事件回调可以用 boost:bind + boost:function , 这个不必担心对象的生命期, 利用
+       boost:function 作为网络库中的形参, 用户代码可以传入全局函数,也可以利用 boost:bind 把对象的成员函数
+       传到网络库中.这种方式对用户的 class 类型没有限制(不必从特定的基类继承)
+       
+    4. 基于 boost:function 的设计
+            线程库,令 Thread 是一个具体类,构造函数接受 ThreadCallback 对象(typedef boost:function<void()> ),
+            用户代码只需要提供能转换为 ThreadCallback 对象(boost:bind), 就可以创建 Thread 实体,然后调用 Thread::start()
+            
+            class Thread{
+                public:
+                    typedef boost:function<void()> ThreadCallback;
+                    Thread(ThreadCallback cb) : cb_(cb) {}
+                    void start()
+                    {
+                        主要是创建一个线程并且调用 cb_ 函数
+                    }
+                    
+                private:
+                    ThreadCallback cb_;
+            };
+            
+            使用方式:
+                class Foo{  // 不需要继承
+                    public:
+                        runInThread();
+                        runInAnoterThread(int i);
+                };
+                
+                Foo foo;
+                Thread th1(boost:bind(&foo.runInThread, &foo));
+                Thread th2(boost:bind(&foo.runInAnoterThread, &foo, 50));
+                th1.start();
+                th2.start();
+```
+
 
 ## std::set
 

@@ -126,7 +126,65 @@
                        之间不必二进制兼容.可执行程序要用新功能,那么用户代码(可执行程序)需要重新编译.如果是原地打补丁(动态链接库 fix, 
                        小版本更新 v1.1.1 到 v1.1.2),则需要进行二进制兼容(可执行程序不需要重新编译)
                        
-            (2) 场景二: 库的使用范围广,用的厂家多,每个厂家的 release cycle 都不相同, 则使用 pimpl 方法
+            (2) 场景二: 库的使用范围广,用的厂家多,每个厂家的 release cycle 都不相同, 则使用 pimpl 方法(不使用virtual 函数,
+                       而是使用 non-virtual 函数)
+                       原来的代码:
+                       
+                       Graphics.h
+                        class Graphics
+                        {
+                           public:
+                               void drawline(int x0, int y0, int x1, int y1);
+                               void drawline(Point p0, Point p1);
+                              
+                           private:
+                                class Impl;  // 前向声明
+                                boost:scoped_ptr<Impl> impl;
+                           
+                        };       
+                        
+                        Graphics.cpp
+                         class Graphics::Impl
+                            {
+                                public:
+                                  void drawline(int x0, int y0, int x1, int y1);
+                                  void drawline(Point p0, Point p1);
+                            };    
+                              
+                              
+                         如果要加入新功能,不必通过继承来扩展,可以直接在头文件中修改(因为是 non-virtual 函数是按照名字链接的)
+                         
+                         Graphics.h
+                         class Graphics
+                         {
+                            public:
+                                void drawline(int x0, int y0, int x1, int y1);
+                                void drawline(double x0, double y0, double x1, double y1); 
+                                void drawline(Point p0, Point p1);
+                               
+                            private:
+                                 class Impl;  // 前向声明
+                                 boost:scoped_ptr<Impl> impl;
+                            
+                         };  
+                         
+                         Graphics.cpp
+                              class Graphics::Impl
+                                 {
+                                     public:
+                                       void drawline(int x0, int y0, int x1, int y1);
+                                       void drawline(double x0, double y0, double x1, double y1); 
+                                       void drawline(Point p0, Point p1);
+                                 };  
+                                 
+                         这种升级方式不必重新编译可执行程序,老的可执行程序也能用(因为是调用 non-virtual 函数来调用), 所以 
+                         Pimpl 方法有编译防火墙之说
+                                             
+                         
+                    
+            
+    6. 在二进制兼容中 non-virtual 函数要比 virtual 函数健壮, 因为 virtual 函数是根据虚函数表的偏移(bind-by-vtable-offset),
+       而 non-virtual 函数 则是根据函数名来定位(bind-by-name),而函数表的偏移在升级修改的过程中很容易移位.
                         
                     
                     
