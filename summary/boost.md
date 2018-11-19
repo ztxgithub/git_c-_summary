@@ -411,7 +411,92 @@
 ```shell
     1. 可以提前申请好内存大小
             string.resize(len)
-
+            
+    2. g++ 的 std::string 采用 COW(copy-on-write)
+    3. 实现 string 的三个方法
+            (1) 直接拷贝(eager copy) 
+                    class string 
+                    {
+                    
+                        private:
+                            char *start;
+                            uint32_t size;       // 保存有效字节数
+                            uint32_t capacity;   // 总共申请的字节数
+                    }
+                    
+            (2) 写时复制(copy-on-write)
+                    COW 技术:懒惰处理多个实例(instance)的资源请求，在多个实例(instance)之间共享某些资源，直到有实例(instance)
+                            需要对资源进行修改时，才真正为该实体分配私有的资源(属于它自己的资源)
+                            
+                    COW 应用: Linux 内核在进程 fork 时对进程地址空间的处理。由于 fork 产生的子进程需要一份和
+                             父进程内容相同但完全独立的地址空间， 一种做法是将父进程的地址空间完全复制一份，
+                             另一种做法是将父进程地址空间中的页面标记为”共享的“（引用计数+1），使子进程与父进程共享地址空间，
+                             但当有一方需要对内存中某个页面进行修改时，重新分配一个新的页面（拷贝原内容），
+                             并使修改进程的虚拟地址重定向到新的页面上。
+                             
+                    
+                    COW 优点:
+                            (1) 减少了分配（和复制）大量资源带来的瞬间延迟
+                            (2) 减少不必要的资源分配
+                            
+                    string 的 copy-on-write:
+                        copy-on-write 只发生在两个 string 对象之间的拷贝构造，赋值和 assign() 操作上，
+                        如果一个 string 由 (const)char* 构造而来，则必然会分配内存和进行复制，
+                        因为 string 对象并不知道也无权控制 char* 所指内存的生命周期
+                        例如:
+                            std::string a = "A medium-sized string to avoid SSO";
+                            std::string b = a;
+                            //a.data() == b.data()? 这里 string a 的地址和 string b 的地址一样, copy-on-write
+                            
+                             b.append('A');
+                             //a.data() == b.data()? string a 的地址和 string b 的地址不一样, 因为 string b的内容修改了
+                             //                      不能再跟 a 共享一份内容
+                             
+                             std::string a = "Hello";
+                             std::string b = "Hello";//Never COW!
+                             assert(b.data() != a.data())  // string a 的地址和 string b 的地址不一样
+                             
+                        (a) 数据结构
+                                class cow_string
+                                {
+                                    struct Rep
+                                    {
+                                        size_t size;
+                                        size_t capacity;
+                                        size_t refcount;
+                                        char *data[1];
+                                    };
+                                    char *start;
+                                }
+                                
+                        (b) 实现COW，必须要有引用计数（reference count）. string 初始化时 refcount = 1，
+                            每当该 string 赋值给了其他 sring，rc++。当需要对 string 做修改时，如果 refcount >1，
+                            则重新申请空间并复制一份原字符串的拷贝，refcount--。当 refcount 减为0时，释放原内存
+                            
+                        (c) 在多线程情况下, string 的 copy-on-write 不是很适用,得考虑到 引用计数（reference count）
+                            的互斥,负责处理可能的竞态条件
+                            
+            (3) 短字符串优化 SSO(short string optimization)
+                    (a) class sso_string
+                        {
+                            char *start;  // 指向字符串内容的起始地址
+                            size_t size;
+                            // 内部有 15 字节的栈空间,为了应付短字符串不需要额外向 heap 申请动态内存
+                            static const int kLocalSize = 15;  
+                            union
+                            {
+                                char buffer[kLocalSize + 1]; // 短字符串情况
+                                size_t capacity;   // 长字符串情况
+                            }data;
+                        }
+                        
+                    (b) 如果字符串比较短，那么直接存放到对象的 buffer 中，然后 start 在指向 buffer
+                       　如果字符串超过 15 字节，则 start 指向从堆中申请的内存的起始地址
+                       
+            (4) 适用场景
+                    (a) 对于短字符串,用短字符串优化(SSO string).
+                    (b) 对于中等字符串, 用直接拷贝(eager copy)
+                    (c) 对于长字符串, 用写时拷贝(copy-on-write)
 ```
 
 ## boost::ptr_vector<>

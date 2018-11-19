@@ -440,7 +440,93 @@
             方法一:
                 通过运行时动态绑定虚函数,通过写一个基类 System_interface, 这里面定义了虚函数 open, close, 
                 accept, getpeername. 正常程序则定义派生类重写虚函数 open()(这里的实现方式是用系统调用 open()),
-                而在单元测试中如果要能够控制系统调用的返回值
+                而在单元测试中如果要控制系统调用的返回值, 则新写一个派生类,该派生类重写虚函数 open() 等系统调用.
+                那么在单元测试时,只要基类的指针指向该派生类,则在运行时就可以动态调用自己定义的系统函数了.
+                
+            方法二:
+                通过编译时绑定不同的源文件,在原来的函数的基础上再封装一层.例如
+                 SocketsOps.h
+                    namespace sockets
+                    {
+                        int connect(int sockfd, const struct sockaddr_in& addr);
+                    }
+                    
+                 SocketsOps.cpp (正式上线使用的源文件)
+                 int sockets::connect(int sockfd, const struct sockaddr_in& addr)
+                 {
+                    return ::connect(sockfd, addr, sizeof(addr));   // 放回系统函数 connect
+                 }
+                 
+                 MockSocketOps.cpp (单元测试时编译用该源文件)
+                 int sockets::connect(int sockfd, const struct sockaddr_in& addr)
+                  {
+                     errno = EAGAIN;
+                     return -1;
+                  }
+                  
+                  这个时候如果要正式发布,则编译用 SocketsOps.cpp, 如果要进行单元测试,则编译用 MockSocketOps.cpp.
+            上述两种方法好处是我们可以通过修改代码,只 mock 要测试的代码,对于第三方库(例如 sqlite)会用到系统调用,则不
+            影响,还是会正常使用系统调用.
+            
+            方法三:
+                和方法二类似,只不过将该源文件改为编译成动态链接库
+                
+    6. 慎用匿名 namespace
+            1. namespace中的成员(变量和函数),具有独一无二的全局名称,避免名称碰撞.
+            2. 不好的原因:
+                    (1) 匿名 namespace 中函数是"匿名", 所以在使用 gdb 调试时,不方便在其中设置断点,
+                        因为如果 a.cc 和 b.cc 在各自的文件中定义的匿名空间中的 foo() 函数，
+                        gdb 则无法区分这两个函数
+                            错误的方法:
+                                namesapce             // 其中 只有 namesapce 是匿名
+                                {
+                                    void foo();
+                                }
+                                
+                            正确的方法: 使用普通具名 namespace
+                                 namesapce detail      // namesapce + 变量名(detail) : 具名
+                                    {
+                                        void foo();
+                                    }
+                                
+                    (2) 在某些编译器中(g++4.2.4),编译包含匿名空间的源文件，其每次编译后的二进制文件的 md5 是不同的
+                     　　因为编译器会随机给匿名 namespace 生成一个唯一的 ID
+                     
+            3. 解决方案:
+                    使用普通具名 namespace, 例如 
+                         namesapce detail      // namesapce + 变量名(detail) : 具名
+                        {
+                            void foo();
+                        }
+                        
+     
+    7. 采用有利于版本管理的代码格式
+            1. 对 diff 友好的代码格式
+                    (1) 即使是多行注释，也要用 "//" , 而不能用 "/**/"
+                        因为一般用 beyond compare, 或则是版本管理时进行代码比较是逐一按行比较，如果
+                        你用 "/**/" 进行多行注释，则比较的时候无法看到是注释里的代码改动还是正常的代码改动．
+                        
+                 　 (2) 一行只定义一个变量更有利于版本管理，这个规则同样也适用与 enum 成员的定义
+                    (3) 对于 namespace ,　class, 不进行缩进，这样对源代码进行 diff 时, chunk name
+                        就是函数名,让人一看就知道哪个函数进行修改
+                        例如:
+                            namespace detail // 顶格,不加空行,不缩进
+                            {
+                            
+                            class A()  // 顶格,不加空行,不缩进
+                            {
+                                .....
+                            }
+                            
+                            }
+                            
+                        这样 diff 后会得到
+                        --- a/test.cc
+                        +++ b/test.cc
+                        @@......@@ class A()    //这里 chunk name 就是 class 名,很容易就可以看到哪个 class 进行修改
+                        -   .......
+                        +   ......
+                                  
 ``
 
 

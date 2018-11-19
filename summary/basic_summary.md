@@ -78,6 +78,16 @@
             struct epoll_event *events = events_.data();
             
     10. 我们不能原地更新正在使用的动态链接库和可执行文件,因为这让进程运行一段时间后会因为 SIGBUS 而崩溃
+    11. 初始化列表的顺序必须和数据成员的顺序相同
+            class A()
+            {
+                A(int x, int y): a(x), b(y) {}
+                private:
+                    int a;
+                    int b;
+            }
+            
+    12. 
 
 ```
 
