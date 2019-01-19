@@ -187,7 +187,11 @@
                       return 0;
                   }
                   
-        (2) 
+        (2)  void MqttProc::onMqttDisconnect(AsyncMqttClientDisconnectReason reason);
+             mqttClient_.onDisconnect(std::bind(&MqttProc::onMqttDisconnect, this, std::placeholders::_1));
+             
+        (3) void PeriodicTimer::handleRead();
+            timerfdChannel_.setReadCallback( boost::bind(&PeriodicTimer::handleRead, this));
                   
     4.其他注意事项
         (1) std::ref()表示传引用, std::cref()表示传不变引用, 
