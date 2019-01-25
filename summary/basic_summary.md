@@ -101,13 +101,13 @@
 ## this 指针
 
 ```c++
-    通常在class定义时要用到类型变量自身时，因为这时候还不知道变量名（为了通用也不可能固定实际的变量名），
-    就用this这样的指针来使用变量自身。
+    通常在 class 定义时要用到类型变量自身时，因为这时候还不知道变量名（为了通用也不可能固定实际的变量名），
+    就用 this 这样的指针来使用变量自身。
     
-    一个对象的this指针并不是对象本身的一部分，不会影响sizeof(对象)的结果。
-    this作用域是在类内部，当在类的非静态成员函数中访问类的非静态成员的时候，编译器会自动将对象本身的地址作为一个隐含参数传递给函数。
-    也就是说，即使你没有写上this指针，编译器在编译的时候也是加上this的，它作为非静态成员函数的隐含形参，
-    对各成员的访问均通过this进行。
+    一个对象的 this 指针并不是对象本身的一部分，不会影响 sizeof(对象) 的结果。
+    this 作用域是在类内部，当在类的非静态成员函数中访问类的非静态成员的时候，编译器会自动将对象本身的地址
+    作为一个隐含参数传递给函数。 也就是说，即使你没有写上 this 指针，编译器在编译的时候也是加上 this 的，
+    它作为非静态成员函数的隐含形参， 对各成员的访问均通过 this 进行。
     
     this 的使用
         (1) 在类的非静态成员函数中返回类对象本身的时候，直接使用 return *this
@@ -211,16 +211,16 @@
 
 ```shell
     1.可以评估括号内表达式的类型,其规则如下：
-        (1) 如果表达式e是一个变量，那么就是这个变量的类型。
-        (2) 如果表达式e是一个函数，那么就是这个函数返回值的类型。
-        (3) 如果不符合1和2，如果e是左值，类型为T，那么decltype(e)是T&；如果是右值，则是T
+        (1) 如果表达式 e 是一个变量，那么就是这个变量的类型。
+        (2) 如果表达式 e 是一个函数，那么就是这个函数返回值的类型。
+        (3) 如果不符合 1 和 2，如果 e 是左值，类型为T，那么 decltype(e) 是 T&；如果是右值，则是 T
         
     2.
       const vector<int> vec;
       typedef decltype(vec.begin()) CIT;
       CIT iter;
       
-    3.decltype与auto关键字一样,用于进行编译时类型推导,decltype(expression),decltype 仅仅“查询”表达式的类型，
+    3.decltype 与 auto 关键字一样,用于进行编译时类型推导,decltype(expression), decltype 仅仅“查询”表达式的类型，
       并不会对表达式进行“求值”。
     4.推导出表达式类型
         int i = 4;
@@ -244,7 +244,7 @@
                 doubel b;
             }anon_s;
             
-        通过decltype,我们可以重新使用这个匿名的结构体：
+        通过 decltype,我们可以重新使用这个匿名的结构体：
             decltype(anon_s) as ;//定义了一个上面匿名的结构体
 ```
 
@@ -278,10 +278,11 @@
         };
 ```
 
-## delete 和 default 函数
+## delete 和 default 关键字
 
 ```shell
-    1.default告诉编译器产生一个默认的,只要你定义了一个构造函数,编译器就不会给你生成一个默认的了。所以,
+    1. default 关键字
+        告诉编译器产生一个默认的,只要你定义了一个构造函数,编译器就不会给你生成一个默认的了。所以,
       为了要让默认的和自定义的共存，才引入这个参数
             struct SomeType
             {
@@ -289,12 +290,13 @@
              SomeType(OtherType value);
             };
             
-    2.阻止函数的其形参的类型调用：(若尝试以 double 的形参调用 f(),将会引发编译期错误,
-                              编译器不会自动将 double 形参转型为 int 再调用f(),
+    2. delete 关键字
+        阻止函数的其形参的类型调用：(若尝试以 double 的形参调用 f(int i),将会引发编译期错误,
+                              编译器不会自动将 double 形参转型为 int 再调用f(int),
                               如果传入的参数是double，则会出现编译错误）
 
-      void f(int i);
-      void f(double) = delete;
+      void f(int i);   // 定义实现了 f(int i)
+      void f(double) = delete;    // 没定义 f(double ), 传入参数是 double 会编译错误
 
 ```
 
@@ -314,26 +316,26 @@
 ## 左值和右值
 
 ```shell
-    1.左值（lvalue,locator value）是一个表达式,它表示一个可被标识的（变量或对象的）内存位置,
-      并且允许使用&操作符来获取这块内存的地址.
-      如果一个表达式不是左值,那它就被定义为右值(无法确定该object的地址)
+    1.左值(lvalue,locator value)是一个表达式,它表示一个可被标识的（变量或对象的）内存位置,
+      并且允许使用 & 操作符来获取这块内存的地址.
+      如果一个表达式不是左值,那它就被定义为右值(无法确定该 object 的地址)
       (1) 一个表达式是右值,而不是左值(因为它没有可定位识别的内存地址)
       
     2.左值引用
-        (1) C++中可以使用&符定义引用,如果一个左值同时是引用，就称为“左值引用”,如
+        (1) C++ 中可以使用 & 符定义引用,如果一个左值同时是引用，就称为“左值引用”,如
                 std::string s;
-                std::string& sref = s;  //sref为左值引用
+                std::string& sref = s;  //sref 为左值引用
                 
-        (2) 非const左值引用不能使用右值对其赋值
-                引用是可以后续被赋值的,右值连可被获取的内存地址都没有,也就谈不上对其进行赋值。
+        (2) 非 const 左值引用不能使用右值对其赋值
+                引用对应的值后续会可能发生的,右值连可被获取的内存地址都没有,也就谈不上对其进行赋值。
                 std::string& r = std::string(); //错误！std::string（）产生一个临时对象，为右值
                 
-        (3) const左值引用可以用右值对其赋值,因为常量不能被修改
+        (3) const 左值引用可以用右值对其赋值,因为常量不能被修改
                 const std::string& r = std::string(); //可以,正确
                 
-    3.带CV限定符（CV-qualified）的右值
-        CV限定符: 变量声明时类型前带有const或volatile
-        在C中,右值永远没有CV限定符,而C++中的类类型的右值可以有CV限定符,例如:
+    3.带 CV 限定符(CV-qualified)的右值
+        CV 限定符: 变量声明时类型前带有 const 或 volatile
+        在 C 中,右值永远没有 CV 限定符,而 C++ 中的类类型的右值可以有 CV 限定符,例如:
             #include <iostream>
             
             class A {
@@ -343,18 +345,18 @@
             };
             
             A bar() { return A(); }           //返回临时对象，为右值
-            const A cbar() { return A(); }    //返回带const的右值（带CV限定符）
+            const A cbar() { return A(); }    //返回带 const 的右值（带CV限定符）
             
             
             int main()
             {
-                bar().foo();  // 非const对象调用A::foo()的非const版本
-                cbar().foo(); // const对象调用A::foo()的const版本
+                bar().foo();  // 非 const 对象调用 A::foo() 的非 const 版本
+                cbar().foo(); // const 对象调用 A::foo() 的 const 版本
             }
             
     3.1 右值的重复拷贝
             (1) 普通右值缺点
-                    右值虽然是不被后续计算所需要的，但它仍然需要构造和析构。 这在C++中造成了不少的代价
+                    右值虽然是不被后续计算所需要的，但它仍然需要构造和析构。 这在 C++ 中造成了不少的代价
                         class Person{
                       
                                 public:
@@ -376,7 +378,7 @@
                                     char *name;
                           };
                     
-                    当我们拷贝Person对象时，会有额外的不需要的内存分配过程，例如：
+                    当我们拷贝 Person 对象时，会有额外的不需要的内存分配过程，例如：
                     
                     Person getAlice(){
                         Person p("alice");      // 对象创建。调用构造函数，一次 new 操作
@@ -409,7 +411,7 @@
                     /*
                      * 这里如果传实参为右值( getAlice() ), 则　形参必须定义为　const Person& p
                      * 
-                     * const左值引用可以用右值对其赋值,因为常量不能被修改
+                     * const 左值引用可以用右值对其赋值,因为常量不能被修改
                      *                 const std::string& r = std::string(); //可以,正确
                      */
                       const Person& operator=(const Person& p){
@@ -439,13 +441,13 @@
                   
                   int main(){
                       cout<<"______构造函数start________________"<<endl;
-                      Person a = getAlice();   //这里 "=" 代表　构造函数,实例化Person类为 a 
+                      Person a = getAlice();   //这里 "=" 代表　构造函数,实例化 Person 类为 a 
                       cout<<"______构造函数end________________"<<endl;
                   
                       cout<<"______赋值函数= start________________"<<endl;
                       /*
                        调用　a = getAlice(),包含很多步骤,
-                            1.首先是getAlice()函数里面有构造函数Person p("alice");
+                            1.首先是 getAlice() 函数里面有构造函数 Person p("alice");
                             2.紧接者　是　调用类的赋值重载函数, const Person& operator=(const Person& p)
                                其中是实例a 的　赋值重载函数,
                       */
