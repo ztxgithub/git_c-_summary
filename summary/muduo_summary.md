@@ -98,9 +98,10 @@
                         1.使用　scatter-gather I/O　(发散聚合IO: readv()),并且一部分缓冲区取自 stack,
                           这样输入缓冲区足够大，通常一次 readv() 调用就能取完全部的数据，由于数据缓冲区
                           足够大，也节省一次 ioctl(socket_fd, FIONREAD, &length),不必事先知道有
-                          多少数据可读而提前预留(reserve()) buffer 的 capacity(), 可以一次性通过
+                          多少数据可读而提前预留(reserve()) bufftimerfd_createer 的 capacity(), 可以一次性通过
                           readv() 读取，将栈空间(extrabuf) 中的数据 append() 给 buf
                         2. readv() 系统函数相对于其他可用减少多次 read() 系统函数
+                        3. 这样设计 IO 缓冲区时事先就可以不用规定这么大的内存
                           
                     
 ```
@@ -153,6 +154,8 @@
         只使用 timerfd_* 系列函数(timerfd_create, timerfd_gettime, timerfd_settime), 原因如下:
             A. timerfd_create() 把时间变成一个文件描述符,这样很方便融入到 epoll/select 框架中,
                用同一的方式处理 IO 事件和超时事件
+               
+    3. 需要 Linux 2.8 左右
 ```
 
 
@@ -225,7 +228,7 @@
          TimerQueue::getExpired() , getExpired() 会从 timers_ 中筛选出已到期的 Timer, 并将他们从 timers_ 中删除，
          同时　TimerQueue::handleRead() 中将调用每个已到期的 Timer 中的用户定义的回调函数．
          
-         关于 TimeQueue::cancelInLoop() 的实现机制,首先更加 Timer 的信息,将该信息从 activeTimers_ 和 timers_
+         关于 TimeQueue::cancelInLoop() 的实现机制,首先更新 Timer 的信息,将该信息从 activeTimers_ 和 timers_
          删除,这样在时间事件触发时通过 TimerQueue::getExpired() 就不会从 timers_ 中筛选出该 Timer. 同时要考虑
          一个情况就是当时间事件触发 Timer 调用的回调函数就是调用 TimeQueue::cancelInLoop(),那么 cancelInLoop() 
          就需要将该 Timer 保存到 cancelingTimers_ 中, 在 TimerQueue::handleRead() 函数体的末尾
