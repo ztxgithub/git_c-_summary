@@ -88,10 +88,11 @@
             　　另一方面连接的接受缓冲区不能太大，这样如果服务端的连接数大(例如10000),则消耗内存过多
             
             (2) 解决方案(readv() 结合栈上空间)
-                    在栈上准备 10000 byte 的 extrabuf, 然后利用 readv() 读取数据， iovec 有两块，第一块指向了
-                    muduo buf 的 writable(针对 muduo buf 而言) 字节，第二块则指向 extrabuf,如果读入的数据不多，
-                    则全部读到 muduo buf 中；如果读入数据太大，则先存满 muduo buf,再接着存 extrabuf, 然后程序再把
-                    extrabuf 里的数据 append 到 muduo buf
+                    在栈上准备 40 KB 的 extrabuf, 然后利用 readv() 读取数据， iovec 有两块，第一块指向了
+                    用户定义的 IO 缓存去 buf 的 writable(针对 muduo buf 而言) 字节，第二块则指向 extrabuf,
+                    如果读入的数据不多，则会全部读到用户缓存区 buf 中；如果读入数据太大，则先存满用户缓存区 buf,
+                    再接着存 extrabuf,然后程序再申请一块比原来大的 IO 缓冲区，将数据拷贝到新的缓冲区中，
+                    同时将 extrabuf 里的数据 append 到这个新的 IO 缓冲区中
                     
                     优点:
                         1.使用　scatter-gather I/O　(发散聚合IO: readv()),并且一部分缓冲区取自 stack,
@@ -99,6 +100,7 @@
                           足够大，也节省一次 ioctl(socket_fd, FIONREAD, &length),不必事先知道有
                           多少数据可读而提前预留(reserve()) buffer 的 capacity(), 可以一次性通过
                           readv() 读取，将栈空间(extrabuf) 中的数据 append() 给 buf
+                        2. readv() 系统函数相对于其他可用减少多次 read() 系统函数
                           
                     
 ```

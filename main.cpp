@@ -13,24 +13,20 @@
 #include <functional>
 using namespace std;
 
-class Bad {
+#include <set>
+#include <iostream>
+
+class B
+{
+    int b;
 public:
-    Bad() { std::cout << "Bad()" << std::endl; }
-    ~Bad() { std::cout << "~Bad()" << std::endl; }
-    std::shared_ptr<Bad> getPtr() {
-        return std::shared_ptr<Bad>(this);
-    }
+    virtual ~B(){ cout <<"B::~B()"<<endl; }
+//    virtual C(){ cout <<"B::C()"<<endl; }
+     cc(){ cout <<"B::C()"<<endl; }
 };
 
-int main()
+int main( )
 {
-    std::shared_ptr<Bad> bp1(new Bad);
-//    std::shared_ptr<Bad> bp2 = bp1->getPtr();
-    std::shared_ptr<Bad> bp2 = bp1;
-    std::shared_ptr<Bad> bp3 = bp2;
-    std::cout << "bp2.use_count: " << bp2.use_count() << std::endl;
-    std::cout << "bp1.use_count: " << bp1.use_count() << std::endl;
-    std::cout << "bp3.use_count: " << bp3.use_count() << std::endl;
+    printf("sizeof(B):%d\n", sizeof(B));
     return 0;
 }
-
