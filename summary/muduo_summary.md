@@ -63,6 +63,8 @@
         ping pong 协议是当客户端与服务端建立连接时，客户端向服务端发送一些数据，服务端则 echo 这些数据(服务端不进行
         数据的解析，只是远远本本得返回给客户端)，客户端再 echo 给服务器，这些数据像乒乓球一样来回在客户端和服务端
         传输，直到连接中断
+        
+        一般是 200 MB/s
 
 ```
 
@@ -88,17 +90,20 @@
             　　另一方面连接的接受缓冲区不能太大，这样如果服务端的连接数大(例如10000),则消耗内存过多
             
             (2) 解决方案(readv() 结合栈上空间)
-                    在栈上准备 10000 byte 的 extrabuf, 然后利用 readv() 读取数据， iovec 有两块，第一块指向了
-                    muduo buf 的 writable(针对 muduo buf 而言) 字节，第二块则指向 extrabuf,如果读入的数据不多，
-                    则全部读到 muduo buf 中；如果读入数据太大，则先存满 muduo buf,再接着存 extrabuf, 然后程序再把
-                    extrabuf 里的数据 append 到 muduo buf
+                    在栈上准备 40 KB 的 extrabuf, 然后利用 readv() 读取数据， iovec 有两块，第一块指向了
+                    用户定义的 IO 缓存去 buf 的 writable(针对 muduo buf 而言) 字节，第二块则指向 extrabuf,
+                    如果读入的数据不多，则会全部读到用户缓存区 buf 中；如果读入数据太大，则先存满用户缓存区 buf,
+                    再接着存 extrabuf,然后程序再申请一块比原来大的 IO 缓冲区，将数据拷贝到新的缓冲区中，
+                    同时将 extrabuf 里的数据 append 到这个新的 IO 缓冲区中
                     
                     优点:
                         1.使用　scatter-gather I/O　(发散聚合IO: readv()),并且一部分缓冲区取自 stack,
                           这样输入缓冲区足够大，通常一次 readv() 调用就能取完全部的数据，由于数据缓冲区
                           足够大，也节省一次 ioctl(socket_fd, FIONREAD, &length),不必事先知道有
-                          多少数据可读而提前预留(reserve()) buffer 的 capacity(), 可以一次性通过
+                          多少数据可读而提前预留(reserve()) bufftimerfd_createer 的 capacity(), 可以一次性通过
                           readv() 读取，将栈空间(extrabuf) 中的数据 append() 给 buf
+                        2. readv() 系统函数相对于其他可用减少多次 read() 系统函数
+                        3. 这样设计 IO 缓冲区时事先就可以不用规定这么大的内存
                           
                     
 ```
@@ -151,6 +156,8 @@
         只使用 timerfd_* 系列函数(timerfd_create, timerfd_gettime, timerfd_settime), 原因如下:
             A. timerfd_create() 把时间变成一个文件描述符,这样很方便融入到 epoll/select 框架中,
                用同一的方式处理 IO 事件和超时事件
+               
+    3. 需要 Linux 2.8 左右
 ```
 
 
@@ -223,7 +230,7 @@
          TimerQueue::getExpired() , getExpired() 会从 timers_ 中筛选出已到期的 Timer, 并将他们从 timers_ 中删除，
          同时　TimerQueue::handleRead() 中将调用每个已到期的 Timer 中的用户定义的回调函数．
          
-         关于 TimeQueue::cancelInLoop() 的实现机制,首先更加 Timer 的信息,将该信息从 activeTimers_ 和 timers_
+         关于 TimeQueue::cancelInLoop() 的实现机制,首先更新 Timer 的信息,将该信息从 activeTimers_ 和 timers_
          删除,这样在时间事件触发时通过 TimerQueue::getExpired() 就不会从 timers_ 中筛选出该 Timer. 同时要考虑
          一个情况就是当时间事件触发 Timer 调用的回调函数就是调用 TimeQueue::cancelInLoop(),那么 cancelInLoop() 
          就需要将该 Timer 保存到 cancelingTimers_ 中, 在 TimerQueue::handleRead() 函数体的末尾
@@ -318,3 +325,5 @@
                 
         
 ```
+
+
