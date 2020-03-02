@@ -320,20 +320,70 @@
                         ...
                     }
                     
-        (4) operator new /operator delete的实现可以基于malloc，而malloc的实现不可以去调用new
+        (4) operator new /operator delete的实现可以基于malloc，而 malloc 的实现不可以去调用 new
         
-    2. 三种new
+    2. 三种 new
     
-        1.最常用的 new 表达式
+        1.最常用的 new 表达式, 
+          new operator : 指 C++ 语法中 new 关键字
             A *obj = new A();  //使用 new 创建对象　new 表达式
             
-            使用 new 表达式会做以下2件事：
+            使用 new 表达式会做以下 2 件事：
                 (1) 调用函数 operator new 来分配空间
                 (2) 调用 placement new 来进行构造函数
                 
-        2. 全局 operator new
+        2. 全局 operator new  --> ::operatro new(size_t size)
                 只是用来分配内存空间
                 
+            class A
+            {
+            public:
+                A()
+                {
+                    std::cout<<"call A constructor"<<std::endl;
+                }
+             
+                ~A()
+                {
+                    std::cout<<"call A destructor"<<std::endl;
+                }
+            }
+            
+            例如: A* p = (A*)::operator new(sizeof(A)); //只是分配内存,不进行构造
+            
+         2.1 如果类 A 重载了 operator new, 就使用该重载版本, 否则使用全局版本 ::operatro new(size_t size)
+                class A
+                {
+                public:
+                    A()
+                    {
+                        std::cout<<"call A constructor"<<std::endl;
+                    }
+                 
+                    ~A()
+                    {
+                        std::cout<<"call A destructor"<<std::endl;
+                    }
+                    
+                    void* operator new(size_t size)  // operator new 操作符
+                    {
+                        std::cout<<"call A::operator new"<<std::endl;
+                        return malloc(size);
+                    }
+                 
+                    void* operator new(size_t size, const std::nothrow_t& nothrow_value)
+                    {
+                        std::cout<<"call A::operator new nothrow"<<std::endl;
+                        return malloc(size);
+                    }
+                };
+          
+                A* p1 = new A;
+          
+                A* p2 = new(std::nothrow) A;
+              
+  
+
         3. placement new
             placement new 的功能就是 在一个 已经分配好的空间上，调用构造函数，创建一个类。
             已经分配好的空间” 可以是任何的空间，比如说 可以是栈上的空间！
@@ -342,7 +392,113 @@
                 class A {...}  //声明一个 类 A
                    
                 void *buf =  malloc(sizeof(A));   //简单地分配空间。
+                // placement new 本身只是返回指针, new(buf) A() 表示调用 placement new 之后, 还会在 buf 上调用 A:A(),
+                // buf 可以是动态分配的内存, 也可以是栈中缓冲, 如char buf[100]; new(buf) A();
+                A *ojb = new(buf) A();    // 在分配的空间上调用构造函数
                 A *ojb = new (buf)A();    // 在分配的空间上调用构造函数
+                
+            placement new 本身就是 operator new 的一个重载, 不需也尽量不要对它进行改写, 一般是搭配 new(p) A(); 只需简单返回指针
+            就可以了
+            
+        4. operator new 运用技巧
+                (1) operator new 重载运用于调试, 可以增加 2 个输入参数,文件名和所在的行数
+                        
+                        class A
+                        {
+                        public:
+                            A()
+                            {
+                                std::cout<<"call A constructor"<<std::endl;
+                            }
+                         
+                            ~A()
+                            {
+                                std::cout<<"call A destructor"<<std::endl;
+                            }
+                         
+                            void* operator new(size_t size, const char* file, int line)
+                            {
+                                std::cout<<"call A::operator new on file:"<<file<<"  line:"<<line<<std::endl;
+                                return malloc(size);
+                                return NULL;
+                            }
+                         
+                        };
+                        
+                        
+                        A* p1 = new(__FILE__, __LINE__) A;
+                        
+                (2)  内存池优化
+                        内存池的一个常见策略就是分配一次性分配一块大的内存作为内存池(buffer 或 pool)，然后重复利用该内存块，
+                        每次分配都从内存池中取出，释放则将内存块放回内存池。在客户端调用的是 new 关键字, 
+                        可以改写 operator new 函数，让它从内存池中取出(当内存池不够时, 再从系统堆中一次性分配一块大的),
+                        这样构造和析构则在取出的内存上进行, 然后再重载 operator delete, 它将内存块放回内存池
+                        
+        5. 其他
+                (1) set_new_handler(int arg)  : arg 为 0 禁用, 1: 启用
+                    set_new_handler 可以在 malloc(需要调用set_new_mode(1))或 operator new 内存分配失败时指定一个
+                    入口函数 new_handler, 这个函数完成自定义处理(继续尝试分配，抛出异常，或终止程序),
+                    如果 new_handler 返回，那么系统将继续尝试分配内存，如果失败，将继续重复调用它，直到内存分配完毕或
+                     new_handler不再返回(抛出异常，终止)
+                     
+                     
+                    #include <iostream>
+                    #include <new.h>// 使用_set_new_mode和set_new_handler
+                    void nomem_handler()
+                    {
+                        std::cout<<"call nomem_handler"<<std::endl;
+                    }
+                    int main()
+                    {
+                        _set_new_mode(1);  //使new_handler有效
+                        set_new_handler(nomem_handler);//指定入口函数 函数原型void f();
+                        std::cout<<"try to alloc 2GB memory...."<<std::endl;
+                        char* a = (char*)malloc(2*1024*1024*1024);
+                        if(a)
+                            std::cout<<"ok...I got it"<<std::endl;
+                        free(a);
+                    
+                    }
+                    
+                 (2) new 分配数组
+                        class A
+                        {
+                        public:
+                            A()
+                            {
+                                std::cout<<"call A constructor"<<std::endl;
+                            }
+                         
+                            ~A()
+                            {
+                                std::cout<<"call A destructor"<<std::endl;
+                            }
+                         
+                            void* operator new[](size_t size)
+                            {
+                                std::cout<<"call A::operator new[] size:"<<size<<std::endl;
+                                return malloc(size);
+                            }
+                            
+                            void operator delete[](void* p)
+                            {
+                                std::cout<<"call A::operator delete[]"<<std::endl;
+                                free(p);
+                            } 
+                            void operator delete(void* p)
+                            {
+                                free(p);
+                            } 
+                        };
+                  
+                            
+                    A* p1 = new A[3];  // 不是简简单单只分配了 sizeof(A) * 3, 在(32 bit)情况下还加了 4 字节,用来
+                                       // 用于编译器区分对象数组指针和对象指针以及对象数组大小
+                   
+                  
+
+                
+        6. 参考资料 : https://blog.csdn.net/WUDAIJUN/article/details/9273339
             
 ```
 
