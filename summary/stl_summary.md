@@ -311,6 +311,27 @@
 ### list
 ```shell
     1. list 容器：双向链表(有数据域和指针域), 方便插入删除, 提供迭代器
+    2. list 可以从尾部删除(pop_back()), 插入(push_back(elem)), 也可以从头部插入(push_front()), 删除(pop_front())
+    3. list::remove(elem) : 删除容器中所有与 elem 值匹配的元素
+    4. list::reverse() : list 元素翻转
+    5. (1) list::sort() : 默认排序从小到大
+       (2) template <class Compare>
+             void sort (Compare comp);
+             
+            也可以指定比较函数
+            bool mycompare(int v1, int v2)
+            {
+                return v1 > v2;   // 含义是当为 true 时才进行交互, 所以本来 v1 在前, v2 在后, 当 v1 > v2 时, 进行交互
+            }
+```
+
+### set/multiset
+```shell
+    1. set/multiset 的特性是所有元素会根据元素的值自动进行排序, set 是红黑树为底层机制, 其查找效率高. set 容器不允许重复元素,
+       multiset 允许重复元素.
+    2. size_type set::count (const value_type& val) const; 返回等于 val 的个数, 可以间接看看该 val 是否存在该 set
+    3. set 查找操作
+            (1) 
 ```
 
 ## 算法
