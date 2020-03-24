@@ -327,11 +327,22 @@
 
 ### set/multiset
 ```shell
-    1. set/multiset 的特性是所有元素会根据元素的值自动进行排序, set 是红黑树为底层机制, 其查找效率高. set 容器不允许重复元素,
-       multiset 允许重复元素.
+    1. set/multiset 的特性是所有元素会根据元素的值自动进行排序, 遍历的时候默认从小到大，
+    　　set 是红黑树为底层机制, 其查找效率高. set 容器不允许重复元素,　multiset 允许重复元素.
     2. size_type set::count (const value_type& val) const; 返回等于 val 的个数, 可以间接看看该 val 是否存在该 set
     3. set 查找操作
-            (1) 
+            (1) iterator set::find (const value_type& val)
+    4. 
+        
+        (1) 使用 stl 的内置函数对象
+        #include <function>  // 预定义函数对象
+        #include <set>
+        using namespace std;
+        
+            set<int, greater<int> > iVector;  // 从大到小, 第二个参数是函数对象, 每插入一个就会调用 greter 的函数对象用来插入顺序条件
+        //    set<int, less<int> > iVector;  // 从小到大
+        
+        (2) 自定义函数对象
 ```
 
 ## 算法
