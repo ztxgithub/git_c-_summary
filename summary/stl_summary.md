@@ -332,6 +332,7 @@
     2. size_type set::count (const value_type& val) const; 返回等于 val 的个数, 可以间接看看该 val 是否存在该 set
     3. set 查找操作
             (1) iterator set::find (const value_type& val)
+            (2) iterator set::lower_bound (const value_type& val); 返回第一个 key >= val 元素的迭代器
     4. 
         
         (1) 使用 stl 的内置函数对象
@@ -342,7 +343,52 @@
             set<int, greater<int> > iVector;  // 从大到小, 第二个参数是函数对象, 每插入一个就会调用 greter 的函数对象用来插入顺序条件
         //    set<int, less<int> > iVector;  // 从小到大
         
-        (2) 自定义函数对象
+        (2) 自定义函数对象(首先是一个类, 里面重载 operator() 方法, 调用 operator() 相当于函数调用, 函数对象又叫仿函数)
+                class GreaterSimu
+                {
+                public:
+                    bool operator()(int v1, int v2)
+                    {
+                        return v1 > v2;
+                    }
+                };
+                
+                set<int, GreaterSimu> iVector;  // 从大到小
+                
+        (3) 如果 set 中的元素是自定义的类型, 注意默认情况是 int/float 基本类型，编译器无法识别 class 内该如果用哪个成员变量排序,
+            所以得 set<Teacher, 函数对象>, 自定义一个函数对象. 函数对象里面的 operator() 排序形式非常重要, set::find() 也会根据
+            这个进行查找
+                    class Teacher{
+                    public:
+                        Teacher(int tId, int tAge):id(tId), age(tAge){}
+                        int id;
+                        int age;
+                    };
+                    
+                    class CmpTeacher
+                    {
+                    public:
+                        bool operator()(Teacher v1, Teacher v2)
+                        {
+                            return v1.id > v2.id;
+                        }
+                    };
+                    
+                    
+                    set<Teacher, CmpTeacher> teachers;  // 从大到小
+                    teachers.insert(Teacher(1, 2));
+                    // 因为是按照　CmpTeacher　函数对象,　Teacher.id 进行排序的,所以可以查找到
+                    auto iterTeacher = teachers.find(Teacher(1, 3));  
+                
+```
+
+## map/multimap
+```shell
+    1. 对组 pair<xxxx,xxxx>
+        pair<string, int> mypair("abc", 123);
+        cout << mypair.first << endl;
+        
+        auto mypair2 = make_pair("abc", 234);
 ```
 
 ## 算法
