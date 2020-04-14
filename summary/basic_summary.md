@@ -29,6 +29,7 @@
         (3) 析构函数   X::~X();                     // destructor
             
         (4) 赋值操作符  X& X::operator=(const X&);   // copy assignment operator
+            重载赋值操作符一般返回值都是对象的引用.
         
         C++11 标准
         

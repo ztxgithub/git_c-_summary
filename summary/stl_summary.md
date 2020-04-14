@@ -4,7 +4,8 @@
 
 ```shell
     1. 智能指针(share_ptr)也算是 stl
-    2. 
+    2. stl 容器提供都是"值"语义, 并不是"引用"语义.
+    3. 通常 stl 不会抛出异常, 需要使用者传入正确参数.
 
 ```
 
@@ -321,18 +322,28 @@
             也可以指定比较函数
             bool mycompare(int v1, int v2)
             {
-                return v1 > v2;   // 含义是当为 true 时才进行交互, 所以本来 v1 在前, v2 在后, 当 v1 > v2 时, 进行交互
+                return v1 > v2;   // 从大到小, 含义是当为 true 时才进行交互, 所以本来 v1 在前, v2 在后, 当 v1 > v2 时, 进行交互
             }
 ```
 
 ### set/multiset
 ```shell
+    0. set 和 multiset 结构体的头文件都是 #include<set>
     1. set/multiset 的特性是所有元素会根据元素的值自动进行排序, 遍历的时候默认从小到大，
     　　set 是红黑树为底层机制, 其查找效率高. set 容器不允许重复元素,　multiset 允许重复元素.
     2. size_type set::count (const value_type& val) const; 返回等于 val 的个数, 可以间接看看该 val 是否存在该 set
     3. set 查找操作
             (1) iterator set::find (const value_type& val)
-            (2) iterator set::lower_bound (const value_type& val); 返回第一个 key >= val 元素的迭代器
+            (2) iterator set::lower_bound (const value_type& val); 
+                    返回第一个 key >= val 元素的迭代器, 这里有个前提条件是 set 使用默认的 comparison type (less) 从小到大
+            (3)  iterator set::upper_bound (const value_type& val);
+                    返回第一个 key > val 元素的迭代器
+            (4) pair<const_iterator,const_iterator> equal_range (const value_type& val) const;
+                    返回的是　pair::first is the lower bound of the range (the same as lower_bound),
+                     and pair::second is the upper bound (the same as upper_bound).
+                     
+                     auto pos =  myset.equal_range(5)
+                     if(pos == myset.end()) // 没有找到
     4. 
         
         (1) 使用 stl 的内置函数对象
@@ -389,10 +400,99 @@
         cout << mypair.first << endl;
         
         auto mypair2 = make_pair("abc", 234);
+    2.map 中所有元素根据键值(key) 自动排序, map 以红黑树为底层实现机制. map 中的键值(key)不允许重复
+```
+
+## 容器总结
+
+```shell
+    1. vector 和 deque　都是一次性分配内存,　可随机存取. vector.at() 比 deque.at() 效率高, 例如 vector.at(0) 是固定的,
+        deque 的开始位置却是不固定.
+        
 ```
 
 ## 算法
 
 ```shell
-    1. algorithm 算法, 
+    1. algorithm 算法
+    2. 一元, 二元函数对象和一元二元谓词
+            (1) 一元函数对象：　写的函数对象接受一个参数, 没有返回值
+                class Print{
+                public:
+                    void operator()(int v)
+                    {
+                        cout << v << endl;
+                    }
+                };
+                
+                void funPrint(int v))
+                {
+                    cout << v << endl;
+                }
+                // for_each 第三个参数是"一元函数对象"
+                for_each(vector.begin(). vector.end(), Print()); // 其中 Print() 代表匿名一元函数对象
+                  for_each(vector.begin(). vector.end(), funPrint); // 可以放置一个参数的普通函数
+            (2) 二元函数对象：　写的函数对象接受两个参数.
+                    class PlusDef{
+                    public:
+                        int operator()(int src1, int src2)
+                        {
+                            return src1 + src2;
+                        }
+                    };
+                    // transform 将容器 vectorSrc1 和 vectorSrc2 依次将对应的迭代器相加再放到对应的目标 vectorDst 容器中.
+                    // 这里注意 vectorDst 要提前申请好空间(vectorDst.resize()),不然会报错.
+                    transform(vectorSrc1.begin(), vectorSrc1.end(), vectorSrc2.begin(), vectorDst.begin(), PlusDef());
+            (3) 一元谓词: 写的函数对象或则普通函数接受一个参数, 并且放回值是 Bool
+                // 一元谓词
+                 class CompareDef{
+                  public:
+                    bool operator()(int v)
+                    {
+                        if(v > 0)
+                            return true;
+                        else
+                            return false;
+                    }
+                  };
+                
+                    // find_if 第三个参数是一元谓词, 当一元谓词返回值为 true 时, find_if 停止遍历
+                    vector<int>::iterator it = find_if(vector.begin(), vector.end(), CompareDef())  // CompareDef() 代表匿名一元谓词对象
+                    if(it != vector.end())
+                    {
+                        .....
+                    }
+                    else // 找到了
+                    {
+                        cout << "*pos" <<  endl;
+                    }
+                
+            (4) 二元谓词: 写的函数对象或则普通函数接受两个参数, 并且放回值是 Bool
+                  class mycompare
+                  {
+                     bool operator()(int v1, int v2) // 从大到小
+                    {
+                        return v1 > v2;   // 含义是当为 true 时才进行交互, 所以本来 v1 在前, v2 在后, 当 v1 > v2 时, 进行交互
+                    }
+                  }
+       
+                  sort(vector.begin(), vector.end(), mycompare());
+                  
+    3. 内建函数对象
+            (1) stl 内建一些函数对象, 分为算数类函数对象, 关系运算类函数对象, 逻辑运算类仿函数.使用内建函数对象，
+                需要引入#include<functional>
+                
+            (2) 算数类函数对象
+                    template<class T> T plus<T>   // 加法仿函数
+                        plus<int> myplus;
+                        int sum =  myplus(10, 20);
+                        int sum  =  plus<int>()(10, 20);
+                        
+                    template<class T> T minute<T>       // 减法仿函数
+                    template<class T> T multiplies<T>   // 乘法仿函数
+                    template<class T> T divides<T>      // 除法仿函数
+                    template<class T> T modulus<T>      // 取模仿函数
+                    
+                    
+            
 ```
