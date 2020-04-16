@@ -414,7 +414,8 @@
 ## 算法
 
 ```shell
-    1. algorithm 算法
+    1. 重载函数调用操作符() 的类, 其对象称为函数对象(function object), 是行为类似函数的对象,也叫仿函数(functor),使得类对象可以像
+    　　函数那样调用.
     2. 一元, 二元函数对象和一元二元谓词
             (1) 一元函数对象：　写的函数对象接受一个参数, 没有返回值
                 class Print{
@@ -494,5 +495,70 @@
                     template<class T> T modulus<T>      // 取模仿函数
                     
                     
-            
+    4. 函数对象适配器
+            (1) 函数对象适配器是完成一些配接工作, 包括绑定(bind), 否定(negate), 以及对一般函数或成员函数的修饰，
+            　　　使其成为函数对象, 例如:
+                        a. bind1st: 将参数绑定为函数对象的第一个参数
+                        b. bind2nd: 将参数绑定为函数对象的第二个参数
+                        c. not1: 对一元函数对象取反
+                        d. not2: 对二元函数对象取反
+                        e. ptr_fun: 将普通函数修饰成函数对象
+                        f. mem_fun: 修饰成员函数
+                        g. mem_fun_ref: 修饰成员函数
+                        
+                        
+                  实例代码:
+                  　　　I. 
+                        /*
+                         * 如果需要外部再传入一个参数 a, 使得遍历 vector 的元素大于 a 时, 才打印
+                         * 第一步: 自定义函数对象去继承父类 binary_function(2 个参数) unary_function(1 个参数)
+                         *        其中　binary_function<int, int, void>　第一个 int 代表 int v1, 第二个 int 代表 int v2, 第三个 void 代表返回值
+                         * */
+                        class printEx1:public binary_function<int, int, void>{
+                        public:
+                            void operator()(int v1, int v2) const  // 这里一定要加上 const
+                            {
+                                if(v1 > v2)
+                                {
+                                    cout << " v1 " << v1 << endl;
+                                }
+                        
+                            }
+                        };
+                        
+                            /*
+                             * bind1st, bind2nd 调用后, 返回值变为一元函数对象.
+                             * 
+                             * */
+                            printEx1 pEx;
+                            // bind1st 把输入的参数绑到第一个位置 v1 
+                            for_each(iVecs.begin(), iVecs.end(), bind1st(pEx, 10));
+                            // bind2nd 把输入的参数绑到第二个位置 v2 
+                            for_each(iVecs.begin(), iVecs.end(), bind2nd(pEx, 3));
+                            
+                        II.
+                        
+                            /*
+                             * not1 是一元函数对象取反
+                             * not2 是二元函数对象取反
+                             * 其中 unary_function 第一个参数 int 是 重载操作符第一个参数 int i, 第二个参数是返回值. 
+                             * */
+                            class compareDefNot:public unary_function<int, bool>{
+                            public:
+                                bool operator()(int i) const 
+                                {
+                                    return i > 5;
+                                }
+                            };
+                            
+                            /*
+                             * 找到第一个小于等于 5 
+                             * */
+                            auto itor = find_if(v.begin(), v.end(), not1(compareDefNot()));
+                            if(itor != v.end())
+                            {
+                                cout << "find_if true " << *itor << endl;
+                            } else{
+                                cout << "find_if not true " << endl;
+                            }
 ```
