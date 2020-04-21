@@ -473,12 +473,14 @@
                   {
                      bool operator()(int v1, int v2) // 从大到小
                     {
-                        return v1 > v2;   // 含义是当为 true 时才进行交互, 所以本来 v1 在前, v2 在后, 当 v1 > v2 时, 进行交互
+                        return v1 > v2;   // 含义是当为 true 时才
                     }
                   }
        
                   sort(vector.begin(), vector.end(), mycompare());
                   
+                  // 调用内建函数对象, 从小到大排序
+                  sort(vector.begin(), vector.end(), less<int>());
     3. 内建函数对象
             (1) stl 内建一些函数对象, 分为算数类函数对象, 关系运算类函数对象, 逻辑运算类仿函数.使用内建函数对象，
                 需要引入#include<functional>
@@ -494,17 +496,25 @@
                     template<class T> T divides<T>      // 除法仿函数
                     template<class T> T modulus<T>      // 取模仿函数
                     
+            (3) 运算类函数对象, 都是二元运算
+                    template<class T> bool equal_to<T>       // 等于
+                    template<class T> bool not_equal_to<T>       // 不等于
+                    template<class T> bool greater<T>       // 大于
+                    template<class T> bool greater_equal<T>       // 大于等于
+                    template<class T> bool less<T>       // 小于
+                    template<class T> bool less_equal<T>       // 小于等于
+                    
                     
     4. 函数对象适配器
             (1) 函数对象适配器是完成一些配接工作, 包括绑定(bind), 否定(negate), 以及对一般函数或成员函数的修饰，
             　　　使其成为函数对象, 例如:
-                        a. bind1st: 将参数绑定为函数对象的第一个参数
-                        b. bind2nd: 将参数绑定为函数对象的第二个参数
-                        c. not1: 对一元函数对象取反
-                        d. not2: 对二元函数对象取反
-                        e. ptr_fun: 将普通函数修饰成函数对象
-                        f. mem_fun: 修饰成员函数
-                        g. mem_fun_ref: 修饰成员函数
+                        a. bind1st: 将参数绑定为函数对象的第一个参数, 作用与函数对象
+                        b. bind2nd: 将参数绑定为函数对象的第二个参数, 作用与函数对象
+                        c. not1: 对一元函数对象取反, 作用与函数对象
+                        d. not2: 对二元函数对象取反, 作用与函数对象
+                        e. ptr_fun: 将普通函数修饰成函数对象, 作用与普通函数
+                        f. mem_fun: 用于修饰成员函数,将其转化为函数对象, 作用与普通成员函数
+                        g. mem_fun_ref: 用于修饰成员函数,将其转化为函数对象, 作用与普通成员函数
                         
                         
                   实例代码:
@@ -561,4 +571,93 @@
                             } else{
                                 cout << "find_if not true " << endl;
                             }
+                            
+                                /*　
+                                 * not2 二元函数对象取反
+                                 * 对元素进行从大到小, 
+                                 * */
+                                sort(v.begin(), v.end(), not2(less<int>()));
+                                for_each(v.begin(), v.end(), print());
+                                
+                        III.  ptr_fun: 将普通函数修饰成函数对象
+                        
+                            void NormalFun(int i, int bindArg)
+                            {
+                                if(i > bindArg)
+                                {
+                                    cout << " i: " << i << endl;
+                                }
+                            }
+                            
+                            /*
+                             *  ptr_func 普通函数适配器
+                             *  如果对普通函数进行绑定参数
+                             *  1. 需要将普通函数转化为函数对象 ptr_fun
+                             *  2. 再使用　Bind 适配器(例如 bind2nd()) 进行参数绑定
+                             * */
+                            for_each(v.begin(), v.end(), bind2nd(ptr_fun(NormalFun), 5));
+                            
+                        IV. mem_fun/mem_fun_ref 用于修饰成员函数,将其转化为函数对象, 作用与普通成员函数
+                        
+                            class Teacher{
+                            public:
+                                Teacher(int tId, int tAge):id(tId), age(tAge){}
+                                int id;
+                                int age;
+                            
+                                void printT()
+                                {
+                                    cout << "member fun id: " << this->id << " age:" << this->age << endl;
+                                }
+                            };
+                            
+                             vector<Teacher> vTs;
+                             Teacher t1(1, 2), t2(3, 4), t3(5, 6);
+                             vTs.push_back(t1);
+                             vTs.push_back(t2);
+                             vTs.push_back(t3);
+                            for_each(vTs.begin(), vTs.end(), mem_fun_ref(&Teacher::printT));
+                            
+                            (1) mem_fun_ref 适用范围：　容器中放的是类对象实体
+                            　　 mem_fun  适用范围：　容器中放的是类对象指针
+                            
+                               vector<Teacher*> vTs2;
+                                Teacher* tp1 = new Teacher(1, 2);
+                                Teacher* tp2 = new Teacher(2, 3);
+                                Teacher* tp3 = new Teacher(3, 4);
+                                Teacher* tp4 = new Teacher(4, 5);
+                                vTs2.push_back(tp1);
+                                vTs2.push_back(tp2);
+                                vTs2.push_back(tp3);
+                                vTs2.push_back(tp4);
+                                for_each(vTs2.begin(), vTs2.end(), mem_fun(&Teacher::printT));
+```
+
+## 常用算法
+```shell
+    1.  算法主要是由头文件 <algorithm> <functional> <numeric> 组成
+        (1) <algorithm> 是所有 STL 头文件中最大的一个，有比较, 交换, 查找, 遍历, 复制,修改, 反转, 排序, 合并等
+        (2) <functional> : 定义了一些模板类, 用来声明函数对象．
+        (3) <numeric> : 体积很小, 只包含在几个序列容器上进行的简单运算的模板函数
+   2. 遍历算法
+        (1) for_each 算法, 返回值也是函数对象
+                 
+                 for_each(v.begin(), v.end(), print());
+                 
+        (2) transform 算法
+            /*
+             * transform 算法将指定容器区间元素通过函数对象处理放到到另一个容器中
+             * 注意：　transform　不会给目标容器分配内存, 目标容器需要提前分配好内存
+             * begin1 : 源容器开始迭代器
+             * end1: 源容器结束迭代器
+             * begin2: 目标容器开始迭代器
+             * _callback: 回调函数或则函数对象
+             * 返回值: 返回目标容器的迭代器
+             * */
+            transform(iterator begin1, iterator end1, iterator begin2, _callback)
+            
+            vector<int> vDst;
+            vDst.resize(10);
+            transform(v.begin(), v.end(), vDst.begin(), myPlus100());
+            for_each(vDst.begin(), vDst.end(), print());
 ```

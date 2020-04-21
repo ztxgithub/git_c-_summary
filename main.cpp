@@ -44,6 +44,11 @@ public:
     Teacher(int tId, int tAge):id(tId), age(tAge){}
     int id;
     int age;
+
+    void printT()
+    {
+        cout << "member fun id: " << this->id << " age:" << this->age << endl;
+    }
 };
 
 class CmpTeacher
@@ -56,6 +61,17 @@ public:
 };
 
 /*
+ * 普通函数
+ * */
+void NormalFun(int i, int bindArg)
+{
+    if(i > bindArg)
+    {
+        cout << " i: " << i << endl;
+    }
+}
+
+/*
  * 如果需要外部再传入一个参数 a, 使得遍历 vector 的元素大于 a 时, 才打印
  * 第一步: 自定义函数对象去继承父类 binary_function(2 个参数) unary_function(1 个参数)
  *
@@ -64,7 +80,7 @@ class print{
 public:
     void operator()(int i)
     {
-        cout << " i " << i << endl;
+        cout << " i: " << i << endl;
     }
 };
 
@@ -119,14 +135,93 @@ void testNot()
     /*
      * 找到第一个小于等于 5
      * */
-    auto itor = find_if(v.begin(), v.end(), not1(compareDefNot()));
-    if(itor != v.end())
-    {
-        cout << "find_if true " << *itor << endl;
-    } else{
-        cout << "find_if not true " << endl;
-    }
+//    auto itor = find_if(v.begin(), v.end(), not1(compareDefNot()));
+//    if(itor != v.end())
+//    {
+//        cout << "find_if true " << *itor << endl;
+//    } else{
+//        cout << "find_if not true " << endl;
+//    }
+
+    /*　
+     * not2 二元函数对象取反
+     * 对元素进行从大到小,
+     * */
+    sort(v.begin(), v.end(), not2(less<int>()));
+    for_each(v.begin(), v.end(), print());
 }
+
+/*
+ *  ptr_func 普通函数适配器
+ *  如果对普通函数进行绑定参数
+ *  1. 需要将普通函数转化为函数对象 ptr_fun
+ *  2. 再使用　Bind 适配器(例如 bind2nd()) 进行参数绑定
+ * */
+void testPtrFun()
+{
+    vector<int> v;
+    for(auto i = 0; i < 10; i++)
+    {
+        v.push_back(i);
+    }
+    for_each(v.begin(), v.end(), bind2nd(ptr_fun(NormalFun), 5));
+}
+
+/*
+ *  mem_fun 修饰成员函数
+ *  希望用类的普通成员函数进行打印
+ *  1.使用　mem_fun_ref
+ * */
+void testMemFun()
+{
+//    vector<Teacher> vTs;
+//    Teacher t1(1, 2), t2(3, 4), t3(5, 6);
+//    vTs.push_back(t1);
+//    vTs.push_back(t2);
+//    vTs.push_back(t3);
+//    for_each(vTs.begin(), vTs.end(), mem_fun_ref(&Teacher::printT));
+
+    vector<Teacher*> vTs2;
+    Teacher* tp1 = new Teacher(1, 2);
+    Teacher* tp2 = new Teacher(2, 3);
+    Teacher* tp3 = new Teacher(3, 4);
+    Teacher* tp4 = new Teacher(4, 5);
+    vTs2.push_back(tp1);
+    vTs2.push_back(tp2);
+    vTs2.push_back(tp3);
+    vTs2.push_back(tp4);
+    for_each(vTs2.begin(), vTs2.end(), mem_fun(&Teacher::printT));
+
+}
+
+class myPlus100
+{
+public:
+    int operator()(int i)
+    {
+        return i + 100;
+    }
+
+};
+
+/*
+ *
+ * */
+void testTransform()
+{
+    vector<int> v;
+    for(auto i = 0; i < 10; i++)
+    {
+        v.push_back(i);
+    }
+
+    vector<int> vDst;
+    vDst.resize(10);
+    transform(v.begin(), v.end(), vDst.begin(), myPlus100());
+    for_each(vDst.begin(), vDst.end(), print());
+
+}
+
 
 int main( )
 {
@@ -174,6 +269,9 @@ int main( )
 //    // bind2nd 把输入的参数绑到第二个位置 v2
 //    for_each(iVecs.begin(), iVecs.end(), bind2nd(pEx, 3));
 
-    testNot();
+//    testNot();
+//    testPtrFun();
+//    testMemFun();
+    testTransform();
     return 0;
 }
