@@ -45,6 +45,8 @@ public:
     int id;
     int age;
 
+
+
     void printT()
     {
         cout << "member fun id: " << this->id << " age:" << this->age << endl;
@@ -222,6 +224,15 @@ void testTransform()
 
 }
 
+void testFind()
+{
+    vector<Teacher> vTs;
+    Teacher t1(1, 2), t2(3, 4), t3(5, 6);
+    vTs.push_back(t1);
+    vTs.push_back(t2);
+    vTs.push_back(t3);
+
+}
 
 int main( )
 {

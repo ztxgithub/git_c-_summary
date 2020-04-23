@@ -645,6 +645,18 @@
                  for_each(v.begin(), v.end(), print());
                  
         (2) transform 算法
+            第一种方式： 将一个容器经过算数操作后到目标容器中
+            
+            class myPlus100
+            {
+            public:
+                int operator()(int i)
+                {
+                    return i + 100;
+                }
+            
+            };
+            
             /*
              * transform 算法将指定容器区间元素通过函数对象处理放到到另一个容器中
              * 注意：　transform　不会给目标容器分配内存, 目标容器需要提前分配好内存
@@ -660,4 +672,46 @@
             vDst.resize(10);
             transform(v.begin(), v.end(), vDst.begin(), myPlus100());
             for_each(vDst.begin(), vDst.end(), print());
+            
+            第二种方式: 将 2 个容器经过算数操作到目标容器中
+            class PlusDef{
+            public:
+                int operator()(int src1, int src2)
+                {
+                    return src1 + src2;
+                }
+            };
+            // transform 将容器 vectorSrc1 和 vectorSrc2 依次将对应的迭代器相加再放到对应的目标 vectorDst 容器中.
+            // 这里注意 vectorDst 要提前申请好空间(vectorDst.resize()),不然会报错.
+            transform(vectorSrc1.begin(), vectorSrc1.end(), vectorSrc2.begin(), vectorDst.begin(), PlusDef());
+            
+   3. 查找算法
+        (1)
+        　　/*
+            * beg: 容器开始迭代器
+            * end: 容器结束迭代器
+            * value: 查找的元素
+            * 返回值: 返回查找元素的位置
+            * */
+           iterator　find(iterator beg, iterator end, value)
+           
+           如果　value　是自定义的类, 要想调用 find 则必须要重载 operator ==
+           
+        (2)
+            　　/*　查找相邻重复元素
+                * beg: 容器开始迭代器
+                * end: 容器结束迭代器
+                * _callback: 回调函数或则谓词(返回 bool 类型的函数对象)
+                * 返回值: 返回相邻元素的第一个位置的迭代器
+                * */
+            iterator　adjacent_find(iterator beg, iterator end, _callback)
+            
+        (3) 
+            　　/*　二分查找(在无序序列中不可用)
+                * beg: 容器开始迭代器
+                * end: 容器结束迭代器
+                * value: 查找的元素
+                * 返回值: 找到返回 true, 否则 false
+                * */
+            bool　binary_search(iterator beg, iterator end, value)
 ```
