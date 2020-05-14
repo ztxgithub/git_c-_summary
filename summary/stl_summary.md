@@ -257,7 +257,7 @@
 ### vector
 
 ```shell
-    1. vector 是单口容器, 通过 push_back 将元素插入到尾部，防止之前元素移动位置导致降低效率, 提供迭代器
+    1. vector 是单口容器, 通过 push_back 将元素插入到尾部，防止之前元素移动位置导致降低效率, 提供迭代器, 随机访问
     2. void vector::pop_back(); 将尾部最后一个元素删除
     3. vector 容器类似与[栈]
     4. vector 初始化定义
@@ -508,13 +508,13 @@
     4. 函数对象适配器
             (1) 函数对象适配器是完成一些配接工作, 包括绑定(bind), 否定(negate), 以及对一般函数或成员函数的修饰，
             　　　使其成为函数对象, 例如:
-                        a. bind1st: 将参数绑定为函数对象的第一个参数, 作用与函数对象
-                        b. bind2nd: 将参数绑定为函数对象的第二个参数, 作用与函数对象
-                        c. not1: 对一元函数对象取反, 作用与函数对象
-                        d. not2: 对二元函数对象取反, 作用与函数对象
-                        e. ptr_fun: 将普通函数修饰成函数对象, 作用与普通函数
-                        f. mem_fun: 用于修饰成员函数,将其转化为函数对象, 作用与普通成员函数
-                        g. mem_fun_ref: 用于修饰成员函数,将其转化为函数对象, 作用与普通成员函数
+                        a. bind1st: 绑定适配器, 将参数绑定为函数对象的第一个参数, 作用与函数对象
+                        b. bind2nd: 绑定适配器, 将参数绑定为函数对象的第二个参数, 作用与函数对象
+                        c. not1: 取反适配器, 对一元函数对象取反, 作用与函数对象
+                        d. not2: 取反适配器, 对二元函数对象取反, 作用与函数对象
+                        e. ptr_fun: 普通函数适配器, 将普通函数修饰成函数对象, 作用与普通函数
+                        f. mem_fun: 成员方法适配器, 用于修饰成员函数,将其转化为函数对象(容器中放的是类对象指针), 作用与普通成员函数
+                        g. mem_fun_ref: 成员方法适配器, 用于修饰成员函数,将其转化为函数对象(容器中放的是类对象实体), 作用与普通成员函数
                         
                         
                   实例代码:
@@ -696,17 +696,43 @@
            iterator　find(iterator beg, iterator end, value)
            
            如果　value　是自定义的类, 要想调用 find 则必须要重载 operator ==
+           class Teacher{
+           public:
+               Teacher(int tId, int tAge):id(tId), age(tAge){}
+               int id;
+               int age;
            
-        (2)
-            　　/*　查找相邻重复元素
+               bool operator ==(const Teacher& rh)
+               {
+                   if((this->id == rh.id) && (this->age == rh.age))
+                       return true;
+                   else
+                       return false;
+               }
+           };
+           
+             auto iter = find(vTs.begin(), vTs.end(), Teacher(1, 1));
+               if(iter != vTs.end())
+               {
+                   cout << "find " << endl;
+               } else{
+                   cout << "not find " << endl;
+               }
+               
+        (2)    第三个变量为函数对象
+                auto itor = find_if(v.begin(), v.end(), not1(compareDefNot()));
+           
+        (3)
+            　　/*　查找相邻重复元素(不指定值), 并返回第一个重复的元素出现的位置
                 * beg: 容器开始迭代器
                 * end: 容器结束迭代器
                 * _callback: 回调函数或则谓词(返回 bool 类型的函数对象)
                 * 返回值: 返回相邻元素的第一个位置的迭代器
                 * */
             iterator　adjacent_find(iterator beg, iterator end, _callback)
+             iterator　adjacent_find(iterator beg, iterator end)
             
-        (3) 
+        (4) 
             　　/*　二分查找(在无序序列中不可用)
                 * beg: 容器开始迭代器
                 * end: 容器结束迭代器
@@ -714,4 +740,134 @@
                 * 返回值: 找到返回 true, 否则 false
                 * */
             bool　binary_search(iterator beg, iterator end, value)
+            注意：　默认是容器顺序指定从小到大, 如果想要容器安装某种顺序排序，并且 binary_search 也要安装某种顺序比较
+            则
+                第一步: 先 sort 排序　sort(v.begin(), v.end(), cmpFun())
+                第二步: binary_search(v.begin(), v.end(), value, cmpFun())
+            
+        (5) 
+            /*
+             * count 算法，统计元素出现的次数
+             * beg: 容器开始迭代器
+             * end: 容器结束迭代器
+             * value: 值
+             * return : 返回的个数
+             * 
+             */
+            int count(iterator beg, iterator end, value)
+            
+            /*
+             * count 算法，统计某个条件的个数, 用法可以统计大于 2 的次数
+             * beg: 容器开始迭代器
+             * end: 容器结束迭代器
+             * value: 回调函数或则谓词(返回 bool 类型的函数对象)
+             * return : 返回的个数
+             * 
+             */
+             int count_if(iterator beg, iterator end, _callback)
+             
+   4. 排序算法(所有的排序算法需要容器支持随机访问, list 不支持 stl sort 算法)
+        (0) list 内部自己提供一个排序算法
+            stl sort 算法默认是从小到大
+        (1)
+            /*
+             * merge 算法，　容器元素合并(2 个容器并集)，并存储到另一个容器，有序容器(从小到大)
+             * beg1: 容器一的开始迭代器, 相同的有序容器
+             * end1: 容器一的结束迭代器, 相同的有序容器
+             * beg2: 容器二的开始迭代器, 相同的有序容器
+             * end2: 容器二的结束迭代器, 相同的有序容器
+             * dst_begin：　目标容器的开始迭代器
+             * */
+            merge(iterator beg1, iterator end1, iterator beg2, iterator end2, iterator dst_begin)  // 从小到大
+            注意：　使用 merge 算法的输入容器比较都是相同的有序
+            
+            指定顺序：
+                   第一步: 先 sort 排序　sort(v1.begin(), v1.end(), cmpFun())
+                                       sort(v2.begin(), v2.end(), cmpFun())
+                                       sort(v2.begin(), v2.end()) // 默认从小到大
+                                       sort(v2.begin(), v2.end(), greater<int>()) // 默认从小到大
+                   第二步:  merge(iterator beg1, iterator end1, iterator beg2, iterator end2, iterator dst_begin, cmpFun())
+                   
+        (2)
+            /*
+             *  sort 算法, 容器元素排序(从小到大)
+             *  beg: 容器开始迭代器
+             *  end: 容器结束迭代器
+             *  _callback: 谓词(返回 bool 类型的函数对象), 只要写入返回 bool 的函数对象就行了
+             * */
+            sort(iterator beg, iterator end, _callback)
+            
+        (3) 
+            /*
+             *  对指定范围内的元素随机调整次序(顺序打乱)
+             * */
+            random_shuffle(iteraor beg, iterator end)
+            
+        (4) 
+            /*
+             * 反转指定范围的元素
+             * 
+             * */
+            reverse(iterator beg, iterator end)
+            
+   5. 拷贝和替换算法
+        (1) 
+            /*
+             * copy 算法　将容器内指定范围的元素拷贝到另一个容器中
+             * beg : 源容器的开始迭代器
+             * end : 源容器的结束迭代器
+             * dest_begin: 目标容器开始迭代器, 目标容器得提前分配好空间
+             * */
+            copy(iterator beg, iterator end, iterator dest_begin)
+            
+        (2) 
+            /*
+             * replace 算法 将容器内指定范围内的旧元素修改为新元素
+             * beg: 容器开始迭代器
+             * end: 容器结束迭代器
+             * oldvalue: 旧元素
+             * newvalue: 新元素
+             * */
+            replace(iterator beg, iterator end, oldvalue, newvalue)
+            
+        (3)
+            /*
+             * replace_if 算法 将容器内指定范围内的满足条件的元素替换为新元素
+             * beg: 容器开始迭代器
+             * end: 容器结束迭代器
+             * _callback: 一元谓词(返回 Bool 类型的函数对象)
+             * newvalue: 新元素
+             * */
+            replace_if(iterator beg, iterator end, _callback, newvalue)
+            
+        (4)
+            /*
+             * swap 算法 互换两个容器的所有元素
+             * 
+             * */
+            swap(container c1, container c2)
+            
+   6. 算数生成算法
+        (1) 
+            /*
+             * accumulate 算法 计算容器元素累计总和
+             * beg: 容器开始迭代器
+             * end: 容器结束迭代器
+             * extern_value: 额外再加个数
+             * 返回值：最后结果(累加值)
+             * 在 <numeric> 头文件中
+             * */
+            T = accumulate(iterator beg, iterator end, T extern_value)
+            
+        (2) 
+            /*
+             * fill 算法 向容器中添加元素
+             * beg 容器开始迭代器
+             * end 容器结束迭代器
+             * value 填充元素
+             * 注意：　容器必须提前初始化(只开辟空间都不行)
+             * */
+            fill(iterator beg, iterator end, value)
+    
+            
 ```

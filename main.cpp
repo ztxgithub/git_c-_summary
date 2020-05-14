@@ -45,7 +45,13 @@ public:
     int id;
     int age;
 
-
+    bool operator ==(const Teacher& rh)
+    {
+        if((this->id == rh.id) && (this->age == rh.age))
+            return true;
+        else
+            return false;
+    }
 
     void printT()
     {
@@ -232,7 +238,65 @@ void testFind()
     vTs.push_back(t2);
     vTs.push_back(t3);
 
+    auto iter = find(vTs.begin(), vTs.end(), Teacher(1, 1));
+    if(iter != vTs.end())
+    {
+        cout << "find " << endl;
+    } else{
+        cout << "not find " << endl;
+    }
 }
+
+void test_adjacent_find()
+{
+    vector<int> v;
+    v.push_back(0);
+    for(auto i = 0; i < 10; i++)
+    {
+        v.push_back(i);
+    }
+
+
+    auto iter = adjacent_find(v.begin(), v.end());
+    if(iter != v.end())
+    {
+        cout<< "adjacent_find *iter " << *iter << endl;
+    }
+}
+
+void test_count()
+{
+    vector<int> v;
+    v.push_back(0);
+    for(auto i = 0; i < 10; i++)
+    {
+        v.push_back(i);
+    }
+
+
+    int countNum = count(v.begin(), v.end(), 0);
+
+    cout<< "countNum: " << countNum << endl;
+
+}
+
+void merge_test()
+{
+    vector<int> v;
+    v.push_back(1);
+    v.push_back(2);
+
+    vector<int> v1;
+    v1.push_back(1);
+
+    vector<int> v3;
+    v3.resize(v.size() + v1.size());
+    merge(v.begin(), v.end(), v1.begin(), v1.end(), v3.begin());
+    for_each(v3.begin(), v3.end(), print());
+
+}
+
+
 
 int main( )
 {
@@ -283,6 +347,10 @@ int main( )
 //    testNot();
 //    testPtrFun();
 //    testMemFun();
-    testTransform();
+//    testTransform();
+//    testFind();
+//    test_adjacent_find();
+//    test_count();
+    merge_test();
     return 0;
 }
