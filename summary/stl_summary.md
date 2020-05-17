@@ -282,7 +282,7 @@
 ### deque 
 
 ```shell
-    1. deque(double-ended queue): 实现方式是链表的形式(以连续物理空间基础), 可以轻松实现两端的插入删除, 提供迭代器
+    1. deque(double-ended queue): 实现方式是链表的形式(以连续物理空间基础), 可以轻松实现两端的插入删除, 提供迭代器, 支持随机访问
     2. deque 的初始化
     3. deque 的赋值操作, assign 操作, swap 操作, =
     4. deque 的大小操作, deque.size() 有效个数 , 没有 capacity 接口
@@ -401,6 +401,8 @@
         
         auto mypair2 = make_pair("abc", 234);
     2.map 中所有元素根据键值(key) 自动排序, map 以红黑树为底层实现机制. map 中的键值(key)不允许重复
+    3. multimap<key, value> : 默认是从小到大, iter =  m.begin() 是最小的
+    　　可以进行从大到小设置　ultimap<key, value, greater<int>>  // <functional> 头文件
 ```
 
 ## 容器总结
@@ -642,7 +644,19 @@
    2. 遍历算法
         (1) for_each 算法, 返回值也是函数对象
                  
-                 for_each(v.begin(), v.end(), print());
+                 (1) for_each(v.begin(), v.end(), print());
+                 (2) for_each 修改容器元素的值
+                       
+                     void modify(int &v)
+                     {
+                         v += 10;
+                     }   
+                     for_each(v.begin(), v.end(), modify);
+                     
+                 (3) for_each 逆向遍历
+                 
+                     for_each(v.rbegin(), v.rend(), print());
+                    
                  
         (2) transform 算法
             第一种方式： 将一个容器经过算数操作后到目标容器中
@@ -868,6 +882,50 @@
              * 注意：　容器必须提前初始化(只开辟空间都不行)
              * */
             fill(iterator beg, iterator end, value)
-    
+   
+   7. 集合算法
+        (1) 
+            /*
+             * set_intersection 算法　求两个 set 集合的交集
+             * 注意: 两个集合必须是有序序列
+             * beg1 容器 1 的开始迭代器
+             * end1 容器 1 的结束迭代器
+             * beg2 容器 2 开始迭代器
+             * end2 容器 2 结束迭代器
+             * dest_beg 目标容器开始迭代器
+             * return 目标容器有效元素的下个迭代器的地址
+             * */
+            iterator　set_intersection(iterator beg1, iterator end1, iterator beg2, iterator end2, iterator dest_beg)
+            
+        (2) 
+            /*
+             * set_union 算法　求两个 set 集合的并集
+             * 注意: 两个集合必须是有序序列
+             * beg1 容器 1 的开始迭代器
+             * end1 容器 1 的结束迭代器
+             * beg2 容器 2 开始迭代器
+             * end2 容器 2 结束迭代器
+             * dest_beg 目标容器开始迭代器
+             * return 目标容器有效元素的下个迭代器的地址
+             * */
+            iterator　set_union(iterator beg1, iterator end1, iterator beg2, iterator end2, iterator dest_beg)
+            
+        (3)
+            /*
+             * set_difference 算法　求两个 set 集合的差集, 目标容器的内容为属于容器 1 但不包含容器 1 与容器 2 的交集
+             * 注意: 两个集合必须是有序序列
+             * beg1 容器 1 的开始迭代器
+             * end1 容器 1 的结束迭代器
+             * beg2 容器 2 开始迭代器
+             * end2 容器 2 结束迭代器
+             * dest_beg 目标容器开始迭代器
+             * return 目标容器有效元素的下个迭代器的地址
+             * */
+            iterator　set_difference(iterator beg1, iterator end1, iterator beg2, iterator end2, iterator dest_beg)
+            
+   8. 
+        distance() : 求两个迭代器之间的距离
+            根据迭代器求下标值
+          　     i = distance(v.begin(), iter)
             
 ```

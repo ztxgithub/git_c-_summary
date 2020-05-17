@@ -296,7 +296,18 @@ void merge_test()
 
 }
 
-
+void modify(int &v)
+{
+    v += 10;
+}
+void for_each_modify_test()
+{
+    vector<int> v;
+    v.push_back(1);
+    v.push_back(2);
+    for_each(v.begin(), v.end(), modify);
+    for_each(v.begin(), v.end(), print());
+}
 
 int main( )
 {
@@ -351,6 +362,7 @@ int main( )
 //    testFind();
 //    test_adjacent_find();
 //    test_count();
-    merge_test();
+//    merge_test();
+    for_each_modify_test();
     return 0;
 }
