@@ -245,8 +245,8 @@
                 pos : 代表源 str 从 pos 开始查找
                 
     6. 替换
-            (1) string& replace (size_t pos, size_t len, const string& str);
-                pos, len 用来确定替换范围, 将 src 从 pos 开始 len 个字符替换为 str, 最终字符串长度可能减少也可能增加.
+            (1) string& replace (size_t pos, size_t len, const string& dest_str);
+                pos, len 用来确定替换范围, 将 源src 从 pos 开始 len 个字符替换为 dest_str, 最终字符串长度可能减少也可能增加.
                 
     7. 子串
             (1) string substr (size_t pos = 0, size_t len = npos) const;
