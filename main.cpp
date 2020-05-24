@@ -309,6 +309,27 @@ void for_each_modify_test()
     for_each(v.begin(), v.end(), print());
 }
 
+class A
+{
+public:
+    void run()
+    {
+        cout<< "xxxx" << endl;
+    }
+};
+class B
+{
+public:
+    void goWork(A *car)
+    {
+        car->run();
+    }
+
+    A* fix()
+    {
+
+    }
+};
 int main( )
 {
 //    set<int> iVector;  // 从大到小
