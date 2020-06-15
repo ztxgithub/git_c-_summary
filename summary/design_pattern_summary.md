@@ -519,7 +519,157 @@
                        //懒汉式的初始化方式
                        Singleton *Singleton::instance = NULL;
                        
-        (6) 应用场景：　日志的打印可以使用单例模式.
-            
+        (6) 应用场景：　日志的打印可以使用单例模式, 系统要求提供一个唯一的序列号生成器或资源管理器，
+                      或者需要考虑资源消耗太大而只允许创建一个对象
+        (7)  优缺点:
+                    a. 优点: 单例模式提供了对唯一实例的受控访问
+                            节约系统资源
+                    b. 缺点: 扩展略难,单例模式中没有抽象层
+                             单例类的职责过重
+```
 
+### 结构型模式(类与类的组合, 获得更大的结构)
+```shell
+    1. 代理模式
+            (1) 为其他对象提供一种代理(Proxy)以控制对这个对象的访问
+            (2) 代理，是指具有与代理元（被代理的对象）具有相同的接口的类， 客户端必须通过代理与被代理的目标类交互，
+                而代理一般在交互的过程中（交互前后），进行某些特别的处理。
+            (3) 例子
+                    // 抽象的购物方式
+                    class Shopping
+                    {
+                    public:
+                    	virtual void buy(Item *it) = 0;//抽象的买东西方法
+                    };
+                    
+                    //韩国购物
+                    class KoreaShopping :public Shopping
+                    {
+                    public:
+                    	virtual void buy(Item *it)  {
+                    		cout << "去韩国买了" << it->getKind()<< endl;
+                    	}
+                    };
+                    
+                    //海外代理
+                    class OverseasProxy :public Shopping
+                    {
+                    public:
+                    	OverseasProxy(Shopping *shpping)  // 构造函数传入实际 buy
+                    	{
+                    		this->shopping = shpping;
+                    	}
+                    
+                    	virtual void buy(Item *it)  {
+                    
+                    		//1 辨别商品的真假，
+                    		//2 进行购买（）
+                    		//3 通过海关安检，带回祖国
+                    
+                    		if (it->getFact() == true)
+                    		{
+                    			cout << "1 发现正品， 要购物" << endl;
+                    
+                    			//用传递进来的购物方式去购物
+                    			shopping->buy(it);
+                    
+                    
+                    			//3 安检
+                    			cout << "2 通过海关安检， 带回祖国" << endl;
+                    		}
+                    		else {
+                    			cout << "1 发现假货，不会购买" << endl;
+                    		}
+                    		
+                    	}
+                    private:
+                    	Shopping *shopping; //有一个购物方式
+                    };
+                    
+                    Shopping *usaShopping = new USAShopping;
+                    // 代理类也继承抽象类, 重写 buy 接口(前后进行相关的操作)
+                    Shopping *overseaProxy = new OverseasProxy(usaShopping); 
+                    overseaProxy->buy(&it1);
+                    
+            (4) 优缺点:
+                    a. 优点: 可以针对抽象类进行编程，增加和更换代理类无须修改源代码，符合开闭原则，系统具有较好的灵活性和可扩展性
+                    b. 缺点: 代理实现较为复杂
+            (5) 适用场景
+                    为其他对象提供一种代理以控制对这个对象的访问
+            (6) 代理模式与装饰器的区别是
+                    代理模式是静态给一个类添加功能, 一般不进行嵌套,如果一个类中的添加功能比较复杂, 则考虑采用代理模式.
+                    而装饰器则是动态给一个类添加功能,如果一个类比较简单,同时需要动态嵌套.
+            　　　
+                    
+    2. 装饰模式
+            (1) 装饰器是一个类, 拥有一个基本功能类对象(成员变量中有　ConcreteComponet(具体构件)). 这个是额外新的新的对象.
+            (2) 
+                //抽象的手机类
+                class Phone
+                {
+                public:
+                	virtual void show() = 0;
+                };
+                
+                class iPhone :public Phone
+                {
+                public:
+                	virtual void show() {
+                		cout << "秀出了iphone" << endl;
+                	}
+                };
+                
+                //写一个抽象的装饰器
+                class Decorator :public Phone
+                {
+                public:
+                	Decorator(Phone *phone) {
+                		this->phone = phone;
+                	}
+                
+                	virtual void show() = 0;
+                protected:
+                	Phone * phone; //拥有一个 所有手机的父类指针
+                };
+                
+                //具体的手机贴膜装饰器
+                class MoDecorator :public Decorator
+                {
+                public:
+                	MoDecorator(Phone *phone) : Decorator(phone) {}
+                	virtual void show() {
+                		this->phone->show();  //保持原有的show
+                
+                		this->mo(); //额外添加一个 mo的方法
+                	}
+                
+                	//膜装饰器，可以修饰添加的方法
+                	void mo() {
+                		cout << "手机有了贴膜" << endl;
+                	}
+                };
+                
+                //皮套的装饰器类
+                class TaoDecorator :public Decorator
+                {
+                public:
+                	TaoDecorator(Phone *phone) : Decorator(phone) {}
+                	virtual void show() {
+                		this->phone->show();
+                		tao();
+                	}
+                
+                	void tao() {
+                		cout << "手机有了皮套" << endl;
+                	}
+                };
+                
+                Phone *phone = new iPhone;
+                phone->show();
+                
+                Phone * moPhone = new MoDecorator(phone);
+                moPhone->show();
+                
+                Phone *moTaoPhone = new TaoDecorator(moPhone);
+                moTaoPhone->show(); //moPhone.show() + tao() ==  phone.show() + mo() + tao();
 ```
