@@ -672,4 +672,85 @@
                 
                 Phone *moTaoPhone = new TaoDecorator(moPhone);
                 moTaoPhone->show(); //moPhone.show() + tao() ==  phone.show() + mo() + tao();
+                
+    3. 外观模式
+            (1) 外观模式相当于接口统一化, 隐藏了接口实现的细节, 对外就统一一个接口.
+    4. 适配器模式
+            (1) 将一个类的接口转换成客户希望的另外一个接口, 使得原本由于接口不兼容而不能一起工作的那些类可以一起工作。
+            (2) 实例
+                　　/**Target 类(目标抽象类)
+                       目标抽象类定义客户所需接口
+                    */
+                    class V5
+                    {
+                    public:
+                    	virtual void useV5() = 0; 
+                    };
+                    
+                    //目前只有v220的类 没有v5
+                    /*
+                        适配者类, 被适配的角色, 
+                     */
+                    class V220
+                    {
+                    public:
+                    	void useV220() {
+                    		cout << "使用了220v的电压" << endl;
+                    	}
+                    };
+                    
+                    //定义一个中间的适配器类, 
+                    // 适配器类 Adapter 继承与 Target 类, 并且重写虚函数方法,　虚函数内调用了 Adaptee(适配者类)的具体方法
+                    class Adapter :public V5
+                    {
+                    public:
+                    	Adapter(V220 * v220)
+                    	{
+                    		this->v220 = v220;
+                    	}
+                    	~Adapter() {
+                    		if (this->v220 != NULL) {
+                    			delete this->v220;
+                    		}
+                    	}
+                    
+                    	virtual void useV5() {
+                    		v220->useV220(); //调用需要另外的方法
+                    	}
+                    
+                    private:
+                    	V220 *v220;
+                    };
+                    
+                    class iPhone
+                    {
+                    public:
+                    	iPhone(V5 *v5)
+                    	{
+                    		this->v5 = v5;
+                    	}
+                    	~iPhone()
+                    	{
+                    		if (this->v5 != NULL) {
+                    			delete this->v5;
+                    		}
+                    	}
+                    
+                    	//充电的方法
+                    	void charge()
+                    	{
+                    		cout << "iphone手机进行了充电" << endl;
+                    		v5->useV5();
+                    	}
+                    private:
+                    	V5*v5; 
+                    };
+                    
+                    iPhone *phone = new iPhone(new Adapter(new V220));
+                    phone->charge();
+```
+
+### 行为型模式(用来对类或对象怎样交互和怎样分配职责进行描述)
+```shell
+    1. 
 ```
