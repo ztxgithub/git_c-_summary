@@ -677,6 +677,7 @@
             (1) 外观模式相当于接口统一化, 隐藏了接口实现的细节, 对外就统一一个接口.
     4. 适配器模式
             (1) 将一个类的接口转换成客户希望的另外一个接口, 使得原本由于接口不兼容而不能一起工作的那些类可以一起工作。
+            
             (2) 实例
                 　　/**Target 类(目标抽象类)
                        目标抽象类定义客户所需接口
@@ -748,9 +749,201 @@
                     
                     iPhone *phone = new iPhone(new Adapter(new V220));
                     phone->charge();
+                    
+            (3) 使用场景
+                    当一个类已经写好后, 调用原来的虚函数接口. 如果不想改变这个类的任何接口细节, 则可以采用适配器类的桥梁，
+                    适配器类继承这个基类, 再构造函数内传入另外一个类, 重写虚函数
 ```
 
 ### 行为型模式(用来对类或对象怎样交互和怎样分配职责进行描述)
 ```shell
-    1. 
+    1. 模板方法模式
+            (1) AbstractClass（抽象类）：在抽象类中定义了一系列基本操作(PrimitiveOperations)，这些基本操作可以是具体的，
+            　　　　　　　　　　　　　　　　也可以是抽象的(纯虚函数), 每一个基本操作对应算法的一个步骤, 在其子类(继承类)中可以重定义或
+                                       实现这些步骤. 在抽象类中实现了一个模板方法(Template Method), 用于定义一个算法
+                                       的框架，模板方法不仅可以调用在抽象类中实现的基本方法，也可以调用在抽象类的子类(继承类)中
+                                       实现的基本方法，还可以调用其他对象中的方法。
+                ConcreteClass（具体子类）：它是抽象类的子类，用于实现在父类中声明的抽象基本操作(纯虚函数)以完成子类特定算法的步骤，
+                                         也可以覆盖在父类中已经实现的具体基本操作.
+                                       
+            (2) 实例
+                    //抽象的制作饮料方法
+                    class MakeDrink
+                    {
+                    public:
+                    	//1 把水煮开
+                    	void boil() {
+                    		cout << "把水煮开" << endl;
+                    	}
+                    	//2 冲某物
+                    	virtual void brew() = 0;
+                    	//3 从大杯倒入小杯
+                    	void putInCup()
+                    	{
+                    		cout << "把冲泡好的饮料 从大杯倒入小杯" << endl;
+                    	}
+                    	//4 加一些酌料
+                    	virtual void addThings() = 0;
+                    
+                    	//钩子函数， hook
+                    	virtual bool CustomWantAddThings() {
+                    		return true;
+                    	}
+                    
+                    
+                    	//业务的逻辑的统一模板 
+                    	void make() {
+                    		boil();
+                    		brew(); //子类
+                    		putInCup(); 
+                    
+                    		if (CustomWantAddThings() == true) {
+                    			addThings(); //子类的多态
+                    		}
+                    	}
+                    };
+                    
+                    //制作咖啡
+                    class MakeCoffee :public MakeDrink
+                    {
+                    public:
+                    	MakeCoffee(bool isAdd)
+                    	{
+                    		this->isAdd = isAdd;
+                    	}
+                    	//2 冲某物
+                    	virtual void brew()
+                    	{
+                    		cout << "冲泡咖啡豆" << endl;
+                    	}
+                    
+                    	//4 加一些酌料
+                    	virtual void addThings()  {
+                    		cout << "添加糖和牛奶" << endl;
+                    	}
+                    
+                        // 重写钩子函数, 与具体类自适应
+                    	virtual bool CustomWantAddThings() {
+                    		return isAdd;
+                    	}
+                    
+                    private:
+                    	bool isAdd;
+                    };
+                    
+            
+            (4) 优缺点:
+                     a. 优点: 
+                              (1) 模板方法模式是一种代码复用技术, 提取类库总的公共行为放在父类中, 通过其子类来实现不同的行为.
+                              (2) 在模板方法模式中可以通过子类来覆盖父类的基本方法，不同的子类可以提供基本方法的不同实现，
+                                  更换和增加新的子类很方便，符合单一职责原则和开闭原则
+                              (3) 在抽象类中统一操作步骤，并规定好接口；让子类实现接口。这样可以把各个具体的子类和操作步骤解耦合
+                              
+                     b. 缺点: 需要为每一个基本方法的不同实现提供一个子类，如果父类中可变的基本方法太多，将会导致类的个数增加，
+                              系统更加庞大，设计也更加抽象
+            (5) 适用场景
+                    (1) 具有统一的操作步骤或操作过程;
+                    (2) 具有不同的操作细节;
+                    (3) 存在多个具有同样操作步骤的应用场景，但某些具体的操作细节却各不相同; 
+    2. 命令模式
+            (1) 命令模式是一种对象行为型模式, 也为　动作(Action)模式或　事务(Transaction)模式
+            (2) 命令模式可以将请求发送者和接收者完全解耦，发送者与接收者之间没有直接引用关系，发送请求的对象只需要知道如何发送请求，
+                而不必知道如何完成请求。
+            (3) 适用与发送一系列的命令, 处理函数在另外一个类, 低耦合
+            (4) 实例
+                    //命令的最终执行者
+                    class Cooker
+                    {
+                    public:
+                    	//烤串
+                    	void makeChuaner() {
+                    		cout << "烤串师傅进行了烤串" << endl;
+                    	}
+                    
+                    	//烤鸡翅
+                    	void makeChicken() {
+                    		cout << "烤串师傅进行了烤鸡翅" << endl;
+                    	}
+                    };
+                    
+                    
+                    //烤串的  抽象的 菜单
+                    class Command
+                    {
+                    public:
+                    	Command(Cooker *cooker)
+                    	{
+                    		this->cooker = cooker;
+                    	}
+                    	~Command() {
+                    		if (this->cooker != NULL) {
+                    			delete this->cooker;
+                    			this->cooker = NULL;
+                    		}
+                    	}
+                    
+                    	//菜单让最终的执行者干活的方法
+                    	virtual void execute() = 0;
+                    
+                    protected:
+                    	Cooker *cooker;
+                    };
+                    
+                    //烤串的菜单
+                    class CommandChuaner :public Command
+                    {
+                    public:
+                    	CommandChuaner(Cooker *cooker) : Command(cooker) {}
+                    
+                    	virtual void execute()  {
+                    		//命令 最终让执行者干的工作。
+                    		this->cooker->makeChuaner();
+                    	}
+                    };
+                    
+                    //烤鸡翅的菜单
+                    class CommandChicken :public Command
+                    {
+                    public:
+                    	CommandChicken(Cooker * cooker) : Command(cooker) {}
+                    
+                    	virtual void execute() {
+                    		//命令 最终让执行者干的工作。
+                    		this->cooker->makeChicken();
+                    	}
+                    };
+                    
+                    //管理所有命令的一个模块
+                    //服务员MM
+                    class Waitress
+                    {
+                    public:
+                    	//给服务员添加菜单的方法
+                    	void setCmd(Command *cmd)
+                    	{
+                    		this->cmd_list.push_back(cmd);
+                    	}
+                    
+                    	//让服务员mm 下单
+                    	void notify() {
+                    		list<Command *>::iterator it = cmd_list.begin();
+                    		for (; it != cmd_list.end(); it++) {
+                    			(*it)->execute(); //在此发生了多态
+                    		}
+                    	}
+                    private:
+                    	list<Command *> cmd_list;
+                    };
+                    
+                    Waitress *mm = new Waitress;
+                
+                    Command *chuanger = new CommandChuaner(new Cooker);
+                    Command *chicken = new CommandChicken(new Cooker);
+                
+                    //把订单都给服务员
+                    mm->setCmd(chuanger);
+                    mm->setCmd(chicken);
+                
+                    //让服务员下单，最终让师傅干活
+                    mm->notify();
 ```
