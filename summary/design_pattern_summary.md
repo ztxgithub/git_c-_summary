@@ -961,4 +961,85 @@
                         最初的请求发出者可能已经不在了，而命令对象本身仍然是活动的，可以通过该命令对象去调用请求接收者(具体执行对象),
                         而无须关心请求调用者的存在性，可以通过请求日志文件等机制来具体实现。
                     (3) 系统需要将一组操作组合在一起形成宏命令
+                    
+    3. 策略模式
+            (1) 
+                a. Context（环境类）：环境类是使用算法的角色，它在解决某个问题（即实现某个方法）时可以采用多种策略。
+                  在环境类中维持一个对抽象策略类的引用实例，用于定义所采用的策略
+                b. Strategy（抽象策略类）：它为所支持的算法声明了抽象方法，是所有策略类的父类，环境类通过抽象策略类中声明的
+                   方法在运行时调用具体策略类中实现的算法
+                c. ConcreteStrategy（具体策略类）：它实现了在抽象策略类中声明的算法(重写虚函数)，在运行时，
+                　　具体策略类将覆盖在环境类中定义的抽象策略类对象，使用一种具体的算法实现某个业务处理。
+            (2) 实例
+                    //抽象的策略（抽象的武器）
+                    class AbstractStrategy
+                    {
+                    public:
+                    	//纯虚函数， 使用具体武器的策略,
+                    	virtual void useWeapon() = 0;
+                    };
+                    
+                    class KnifeStrategy :public AbstractStrategy
+                    {
+                    public:
+                    	virtual void useWeapon() {
+                    		cout << "使用匕首，进行近战攻击" << endl;
+                    	}
+                    };
+                    
+                    class AkStrategy :public AbstractStrategy
+                    {
+                    public:
+                    	virtual void  useWeapon() {
+                    		cout << "使用ak 进行远程攻击" << endl;
+                    	}
+                    };
+                    
+                    
+                    class Hero
+                    {
+                    public:
+                    	Hero()
+                    	{
+                    		strategy = NULL;
+                    	}
+                    
+                    	void setStrategy(AbstractStrategy *strategy)
+                    	{
+                    		this->strategy = strategy;
+                    	}
+                    
+                    	//攻击方法
+                    	void fight() {
+                    		cout << "英雄开始战斗了" << endl;
+                    		this->strategy->useWeapon();
+                    	}
+                    
+                    private:
+                    	//拥有一个 使用攻击策略的抽象成员
+                    	AbstractStrategy *strategy;
+                    };
+                    
+                    AbstractStrategy *knife = new KnifeStrategy;
+                    AbstractStrategy *ak47 = new AkStrategy;
+                
+                    Hero *hero = new Hero;
+                
+                    cout << "远程兵来了， 更换远程攻击" << endl;
+                    hero->setStrategy(ak47);
+                    hero->fight();
+                
+                    cout << "近战兵 来了， 更换近战的攻击" << endl;
+                    hero->setStrategy(knife);
+                    hero->fight();
+                    
+            (3) 优缺点:
+                     a. 优点: 
+                          (1) 用户可以在不修改原有系统的基础上选择算法或行为，也可以灵活地增加新的算法或行为。
+                          (2) 使用策略模式可以避免多重条件选择语句
+                          (3) 策略模式提供了一种算法的复用机制
+                              
+                     b. 缺点: 策略模式将造成系统产生很多具体策略类
+            (4) 适用场景
+                    
 ```
