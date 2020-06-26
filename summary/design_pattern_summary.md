@@ -1042,4 +1042,121 @@
                      b. 缺点: 策略模式将造成系统产生很多具体策略类
             (4) 适用场景
                     
+                    
+    3. 观察者模式
+            (1) 观察者模式是用于建立一种对象与对象之间的依赖关系，一个对象发生改变时将自动通知其他对象，其他对象将相应作出反应。
+            　　 在观察者模式中，发生改变的对象称为观察目标，而被通知的对象称为观察者.
+            (2) 
+                a. Subject（被观察者或目标，抽象主题）：被观察的对象。当需要被观察的状态发生变化时，需要通知队列中所有观察者对象。
+                                                   Subject需要维持（添加， 删除，通知）一个观察者对象的队列列表。
+                b. ConcreteSubject（具体被观察者或目标，具体主题）：被观察者的具体实现。包含一些基本的属性状态及其他操作。
+                c. Observer（观察者）：接口或抽象类。当 Subject 的状态发生变化时， Observer 对象将通过一个 callback 函数得到通知。
+                d. ConcreteObserver（具体观察者）：观察者的具体实现。得到通知后将完成一些具体的业务逻辑处理
+            (3) 实例
+                // 抽象的观察者， （监听者）
+                class Listenner
+                {
+                public:
+                	//老师来了 我改怎么办
+                	virtual void onTeacherComming() = 0;
+                
+                	//学生干坏事的方法
+                	virtual void doBadthing() = 0;
+                };
+                
+                //抽象的 被观察者， （通知者）
+                class Notifier
+                {
+                public:
+                	//添加观察者的方法
+                	virtual void addListenner(Listenner *listenner) = 0;
+                	//删除观察者的方法
+                	virtual void delListenner(Listenner *listenner) = 0;
+                
+                	//通知所有观察者的方法
+                	virtual void notify() = 0;
+                };
+                
+                //具体的观察者
+                class Student :public Listenner
+                {
+                public:
+                	Student(string name, string badthing)
+                	{
+                		this->name = name; 
+                		this->badthing = badthing;
+                	}
+                
+                	//老师来了学生该怎么办
+                	virtual void onTeacherComming()
+                	{
+                		cout << "学生"<<name  <<"发现班长给我使眼神了， 停止" << badthing << endl;
+                		cout << "改为写作业" << endl;
+                	}
+                
+                	virtual void doBadthing() {
+                		cout << " 学生 " << name << "目前正在 " << badthing << endl;
+                	}
+                private:
+                	string name;
+                	string badthing;
+                };
+                
+                
+                //具体的通知者(班长)
+                class Monitor :public Notifier
+                {
+                public:
+                	//添加观察者的方法
+                	virtual void addListenner(Listenner *listenner)  {
+                		this->l_list.push_back(listenner);
+                	}
+                	//删除观察者的方法
+                	virtual void delListenner(Listenner *listenner)  {
+                		this->l_list.remove(listenner);
+                	}
+                
+                	//通知所有观察者的方法
+                	//班长使眼神的方法
+                	virtual void notify()  {
+                		//广播信息，让每一个学生都执行各自的重写的onTeacherComming方法
+                		for (list<Listenner *>::iterator it = l_list.begin(); it != l_list.end(); it++) {
+                			(*it)->onTeacherComming();
+                			//在此处如果触发班长的notify（）
+                		}
+                	}
+                private:
+                	list<Listenner *> l_list; //班长手中所有的学生(观察者)
+                };
+                
+                Listenner *s1 = new Student("张三", "抄作业");
+                Listenner *s2 = new Student("李四", "打lol");
+                Listenner *s3 = new Student("王五", " 看李四玩lol");
+            
+                Notifier *bossXu = new Monitor;
+            
+                //将所有的学生列表告知通知者，好让通知者进行通知 
+                bossXu->addListenner(s1);
+                bossXu->addListenner(s2);
+                bossXu->addListenner(s3);
+            
+            
+            
+                cout << "教师一片和谐，老师没有来 " << endl;
+                s1->doBadthing();
+                s2->doBadthing();
+                s3->doBadthing();
+            
+                cout << "班长突然发现老师来了，给学生们使了一个眼神" << endl;
+                bossXu->notify();
+                
+            (4) 优缺点
+                     a. 优点: 
+                          (1) 观察者模式在观察目标和观察者之间建立一个抽象的耦合。观察目标只需要维持一个抽象观察者的集合，
+                              无须了解其具体观察者。由于观察目标和观察者没有紧密地耦合在一起，因此它们可以属于不同的抽象化层次
+                          (2) 观察者模式支持广播通信，观察目标会向所有已注册的观察者对象发送通知，简化了一对多系统设计的难度
+                              
+                     b. 缺点: 如果在观察者和观察目标之间存在循环依赖，观察目标会触发它们之间进行循环调用，可能导致系统崩溃。
+            (5) 适用场景
+                    
 ```
