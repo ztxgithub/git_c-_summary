@@ -42,6 +42,27 @@
                     }
                 private:
                     double re;
+                    double im;
+                    
+                    /*
+                        doapl 直接可以使用私有变量
+                    */
+                    friend complex& doapl(complex* ths, const complex& r);
+                    
+                    int func(const complex& param)
+                    {
+                        return param.re + param.im;  // 可以在类内引用私有变量.
+                    }
             }
+    3. 谁调用操作符, 那么 this 就指向谁
+    4. 操作符有成员函数, 也有非成员函数(全局)
+    5. 
+         ostream& operator << (ostream& os, const complex& x)
+        {
+            return os << "(" << x.real() << "," << x.imag() << ")";
+        }
+        
+        这里返回值是 ostream& 是对应与 cout << c1 << c2 这种 2 个 << 的情况, 第一步是 cout << c1 得出来的 ostream& 
+        再进行 << c2
 ```
 
