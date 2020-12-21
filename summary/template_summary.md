@@ -40,6 +40,8 @@
             return 0;
         }
         
+        其中 class T 要能够支持 operatero < 操作符重载
+        
     3.成员函数模板
         class Printer {
         public:
